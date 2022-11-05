@@ -1,0 +1,31 @@
+{
+    # Cachedir used not only for caches but for some settings and stats too.
+    "cachedir" : "data/cache",
+
+    # Required for debugging reasons, if commented out or not exist, no debug logging appears at all.
+    "log" : "/var/log/aleesa-telegram/debug.log",
+
+    # Verbosity can be trace, debug, info (inform), notice, warning (warn), error (err), critical (crit, fatal), alert, emergency.
+    # Currently implemented debug, info, notice, warn, error, fatal. Notice is default logging level.
+    "loglevel": "notice",
+
+    # Stuff for telegram itself.
+    "telegrambot" : {
+        # Prefix-sign for all commands. In many irc-bots (eggdrop/windrop) it is "." (dot), in sulci it was "!".
+        # In telegram commands begin with "/" on the start of first (and only) line. In case of this bot you can define what to use.
+        "csign" : "!",
+
+        "token" : "Long_string_given_by_@BotFather"
+    },
+
+    # Unprivileged user to run this bot from.
+    "user" : "nobody",
+
+    "redis_server": "redis",
+    "redis_port" : "6379",
+    "redis_channels" : [
+        "telegram"
+    ],
+
+    "redis_router_channel" : "misc"
+}
