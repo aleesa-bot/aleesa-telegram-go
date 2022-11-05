@@ -1,0 +1,7 @@
+.idea/**
+.vscode/**
+.vstags
+vendor/**
+data/config.json
+data/*_db
+aleesa-telegram-go
