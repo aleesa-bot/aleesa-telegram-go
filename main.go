@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// init производит некоторую инициализацию перед запуском main()
+// init производит некоторую инициализацию перед запуском main().
 func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableQuote:           true,
@@ -75,7 +75,7 @@ func main() {
 	// Main context
 	var ctx = context.Background()
 
-	// Откроем лог и скормим его логгеру
+	// Откроем лог и скормим его логгеру.
 	if config.Log != "" {
 		logfile, err := os.OpenFile(config.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 
@@ -86,7 +86,7 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
-	// Иницализируем redis-клиента
+	// Инициализируем redis-клиента
 	redisClient = redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", config.Redis.Server, config.Redis.Port),
 	})
@@ -97,13 +97,14 @@ func main() {
 
 	// telego init here
 
-	// Самое время поставить траппер сигналов
+	// Самое время поставить траппер сигналов.
 	signal.Notify(sigChan,
 		syscall.SIGINT,
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 
 	go sigHandler()
+	go telega(config)
 
 	// Обработчик событий от редиски
 	for msg := range redisMsgChan {
