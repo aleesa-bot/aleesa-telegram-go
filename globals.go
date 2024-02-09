@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/NicoNex/echotron/v3"
 	"github.com/cockroachdb/pebble"
 	"github.com/go-redis/redis/v8"
 )
@@ -29,3 +30,5 @@ var sigChan = make(chan os.Signal, 1)
 
 // Мапка с открытыми дескрипторами баз с настройками
 var settingsDB = make(map[string]*pebble.DB)
+
+var tg echotron.API

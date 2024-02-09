@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"regexp"
+	"strconv"
 
+	"github.com/NicoNex/echotron/v3"
+	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,14 +80,33 @@ func redisMsgParser(msg string) {
 	// j.Misc.Username можно не передавать, тогда будет пустая строка
 
 	// Отвалидировались, теперь вернёмся к нашим баранам.
-	lines := regexp.MustCompile("\r?\n").Split(j.Message, -1)
 
-	for _, message := range lines {
-		if userModeIsOped(j.Chatid, ircClient.GetNick()) || userModeIsVoiced(j.Chatid, ircClient.GetNick()) {
-			imChanUnrestricted <- iMsg{ChatId: j.Chatid, Text: message}
-		} else {
-			imChan <- iMsg{ChatId: j.Chatid, Text: message}
-		}
+	var opts *echotron.MessageOptions
+	chatid, err := strconv.ParseInt(j.Chatid, 10, 64)
+
+	if err != nil {
+		log.Errorf("unable to parse message from redis, incorrect chatid field: %s", err)
+
+		return
+	}
+
+	resp, err := tg.SendMessage(j.Message, chatid, opts)
+
+	if err != nil {
+		// TODO: поддержать миграцию группы в супергруппу, поддержать вариант, когда бот замьючен.
+		// Красиво оформить ошибку, сполями итд, как tracedump, только ошибка.
+		log.Errorf("Unable to send message to telegram api: %s", err)
+		log.Errorf("Response dump: %s", spew.Sdump(resp))
+	}
+
+	return
+}
+
+// telegramMsgParser парсит ивент, прилетевший из bot api.
+func telegramMsgParser(msg *echotron.Update) {
+	if shutdown {
+		// Если мы завершаем работу программы, то нам ничего обрабатывать не надо.
+		return
 	}
 
 	return

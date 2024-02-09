@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 )
 
-// Производит некоторую инициализацию перед запуском main()
+// init производит некоторую инициализацию перед запуском main()
 func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableQuote:           true,
@@ -20,8 +21,6 @@ func init() {
 		FullTimestamp:          true,
 		TimestampFormat:        "2006-01-02 15:04:05",
 	})
-
-	readConfig()
 
 	// no panic, no trace
 	switch config.Loglevel {
@@ -38,7 +37,40 @@ func init() {
 	default:
 		log.SetLevel(log.InfoLevel)
 	}
+
+	var err error
+
+	executablePath, err := os.Executable()
+
+	if err != nil {
+		log.Errorf("Unable to get current executable path: %s", err)
+		os.Exit(1)
+	}
+
+	configJSONPath := fmt.Sprintf("%s/data/config.json", filepath.Dir(executablePath))
+
+	locations := []string{
+		"~/.aleesa-telegram-go.json",
+		"~/aleesa-telegram-go.json",
+		"/etc/aleesa-telegram-go.json",
+		configJSONPath,
+	}
+
+	for _, location := range locations {
+		config, err = parseConfig(location)
+
+		if err == nil {
+			break
+		}
+
+		log.Errorf("Unable to parse config at %s: %s", location, err)
+	}
+
+	if err != nil {
+		os.Exit(1)
+	}
 }
+
 func main() {
 	// Main context
 	var ctx = context.Background()

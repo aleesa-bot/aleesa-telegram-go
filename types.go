@@ -8,6 +8,11 @@ type myConfig struct {
 		Channel   string `json:"channel,omitempty"`
 		MyChannel string `json:"my_channel,omitempty"`
 	} `json:"redis"`
+
+	Telegram struct {
+		Token string `json:"token,omitempty"`
+	}
+
 	Loglevel    string `json:"loglevel,omitempty"`
 	Log         string `json:"log,omitempty"`
 	Csign       string `json:"csign,omitempty"`
