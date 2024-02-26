@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/NicoNex/echotron/v3"
@@ -135,15 +136,68 @@ func telegramMsgParser(msg *echotron.Update) {
 		// TODO: проверить, надо ли прощаться с ушедшим участником чата и попрощаться, если надо
 	}
 
-	var rmsg rMsg
+	var (
+		rmsg         rMsg
+		errorOccured bool
+	)
+
+	me, err := tg.GetMe()
+
+	if err != nil {
+		log.Errorf("Unable to get info about myself, %s", err)
+		errorOccured = true
+	}
+
+	if !me.Ok {
+		log.Errorf("Unable to get info about myself: %d %s", me.ErrorCode, me.Description)
+		errorOccured = true
+	}
+
+	if errorOccured {
+		return
+	}
 
 	switch msg.Message.Chat.Type {
 	case "private":
+		// Всё что можно было похэндлить, что не содержало текста, считаем, что обработали.
+		if msg.Message.Text == "" {
+			return
+		}
+
 		// handle private messages
 		rmsg.Misc.Answer = 1
 		// если фраза является командой - засылаем её в парсер команд
 
 		// Засылаем фразу в misc-канал (в роутер)
+		rmsg.Chatid = fmt.Sprintf("%d", msg.ChatID())
+		rmsg.Userid = fmt.Sprintf("%d", msg.Message.From.ID)
+		rmsg.Message = msg.Message.Text
+		rmsg.Mode = "private"
+		rmsg.Plugin = "telegram"
+		rmsg.From = "telegram"
+		rmsg.Misc.Csign = config.Csign
+		rmsg.Misc.Fwdcnt = 1
+		rmsg.Misc.Botnick = me.Result.Username
+		rmsg.Misc.Username = ""
+		rmsg.Misc.GoodMorning = 0
+		// TODO: детектить нужно ли форматировать ответ. Для этого фактически надо парсить простые команды, как минимум.
+		rmsg.Misc.Msgformat = 0
+
+		data, err := json.Marshal(rmsg)
+
+		if err != nil {
+			log.Warnf("Unable to to serialize message for redis: %s", err)
+
+			return
+		}
+
+		// Заталкиваем наш json в редиску
+		if err := redisClient.Publish(ctx, config.Redis.Channel, data).Err(); err != nil {
+			log.Warnf("Unable to send data to redis channel %s: %s", config.Redis.Channel, err)
+		} else {
+			log.Debugf("Sent msg to redis channel %s: %s", config.Redis.Channel, string(data))
+		}
+
 	case "group", "supergroup":
 		// handle public (super)group messages
 		// Здесь работает цензор, если он включён.
