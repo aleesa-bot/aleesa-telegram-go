@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
@@ -21,7 +20,7 @@ func parseConfig(path string) (myConfig, error) {
 
 	// Конфиг-файл длинноват для конфига, попробуем следующего кандидата.
 	if fileInfo.Size() > 65535 {
-		err := errors.New(fmt.Sprintf("Config file %s is too long for config, skipping", path))
+		err := fmt.Errorf("Config file %s is too long for config, skipping", path)
 
 		return myConfig{}, err
 	}
@@ -36,8 +35,11 @@ func parseConfig(path string) (myConfig, error) {
 	// Исходя из документации, hjson какбы умеет парсить "кривой" json, но парсит его в map-ку.
 	// Интереснее на выходе получить структурку: то есть мы вначале конфиг преобразуем в map-ку, затем эту map-ку
 	// сериализуем в json, а потом json преврщааем в стркутурку. Не очень эффективно, но он и не часто требуется.
-	var sampleConfig myConfig
-	var tmp map[string]interface{}
+	var (
+		sampleConfig myConfig
+		tmp          map[string]interface{}
+	)
+
 	err = hjson.Unmarshal(buf, &tmp)
 
 	// Не удалось распарсить.
@@ -59,6 +61,7 @@ func parseConfig(path string) (myConfig, error) {
 	// Валидируем значения из конфига.
 	if sampleConfig.Redis.Server == "" {
 		sampleConfig.Redis.Server = "localhost"
+
 		log.Infof("Redis server is not defined in config, using localhost")
 	}
 
@@ -67,19 +70,19 @@ func parseConfig(path string) (myConfig, error) {
 	}
 
 	if sampleConfig.Redis.Channel == "" {
-		err := errors.New(fmt.Sprintf("Channel field in config file %s must be set", path))
+		err := fmt.Errorf("Channel field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
 
 	if sampleConfig.Redis.MyChannel == "" {
-		err := errors.New(fmt.Sprintf("My_channel field in config file %s must be set", path))
+		err := fmt.Errorf("My_channel field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
 
 	if sampleConfig.Telegram.Token == "" {
-		return myConfig{}, errors.New(fmt.Sprintf("telegram.token field in config file %s must be set", path))
+		return myConfig{}, fmt.Errorf("telegram.token field in config file %s must be set", path)
 	}
 
 	if sampleConfig.Loglevel == "" {
@@ -89,7 +92,7 @@ func parseConfig(path string) (myConfig, error) {
 	// sampleConfig.Log = "" if not set
 
 	if sampleConfig.Csign == "" {
-		err := errors.New(fmt.Sprintf("Csign field in config file %s must be set", path))
+		err := fmt.Errorf("Csign field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
@@ -99,7 +102,7 @@ func parseConfig(path string) (myConfig, error) {
 	}
 
 	if sampleConfig.DataDir == "" {
-		return myConfig{}, errors.New(fmt.Sprintf("Data_dir field in config file %s must be set", path))
+		return myConfig{}, fmt.Errorf("Data_dir field in config file %s must be set", path)
 	}
 
 	return sampleConfig, err

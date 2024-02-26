@@ -1,6 +1,6 @@
 package main
 
-// Конфиг
+// myConfig структура, описывающая формат Конфига.
 type myConfig struct {
 	Redis struct {
 		Server    string `json:"server,omitempty"`
@@ -20,7 +20,7 @@ type myConfig struct {
 	DataDir     string `json:"data_dir,omitempty"`
 }
 
-// Входящее сообщение из pubsub-канала redis-ки
+// rMsg структура, описывающая формат входящего сообщения из pubsub-канала redis-ки.
 type rMsg struct {
 	From    string `json:"from,omitempty"`
 	Chatid  string `json:"chatid,omitempty"`
@@ -39,7 +39,7 @@ type rMsg struct {
 	} `json:"Misc"`
 }
 
-// Исходящее сообщение в pubsub-канал redis-ки
+// sMsg структура, описывающая исходящее сообщение в pubsub-канал redis-ки.
 type sMsg struct {
 	From    string `json:"from"`
 	Chatid  string `json:"chatid"`

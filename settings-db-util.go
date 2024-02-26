@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// StoreKV сохраняет в указанной бд ключ и значение
+// StoreKV сохраняет в указанной бд ключ и значение.
 func StoreKV(db *pebble.DB, key string, value string) error {
 	var kArray = []byte(key)
 	var vArray = []byte(value)
@@ -40,7 +40,7 @@ func FetchV(db *pebble.DB, key string) (string, error) {
 	return valueString, err
 }
 
-// Достанем настройку из БД с настройками
+// getSetting достаёт настройку из БД с настройками.
 func getSetting(chatID string, setting string) string {
 	var err error
 
@@ -82,7 +82,7 @@ func getSetting(chatID string, setting string) string {
 	return value
 }
 
-// Сохраним настройку в БД с настройками
+// saveSetting сохраняет настройку в БД с настройками
 func saveSetting(chatID string, setting string, value string) error {
 	var chatHash = sha256.Sum256([]byte(chatID))
 	var database = fmt.Sprintf("settings_db/%x", chatHash)

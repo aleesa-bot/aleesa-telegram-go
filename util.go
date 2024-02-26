@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -12,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// readConfig считывает и парсит конфиг-файл.
 func readConfig() {
 	configLoaded := false
 	executablePath, err := os.Executable()
@@ -40,27 +40,33 @@ func readConfig() {
 		// Конфиг-файл длинноват для конфига, попробуем следующего кандидата
 		if fileInfo.Size() > 65535 {
 			log.Warnf("Config file %s is too long for config, skipping", location)
+
 			continue
 		}
 
-		buf, err := ioutil.ReadFile(location)
+		buf, err := os.ReadFile(location)
 
 		// Не удалось прочитать, попробуем следующего кандидата
 		if err != nil {
 			log.Warnf("Skip reading config file %s: %s", location, err)
+
 			continue
 		}
 
 		// Исходя из документации, hjson какбы умеет парсить "кривой" json, но парсит его в map-ку.
 		// Интереснее на выходе получить структурку: то есть мы вначале конфиг преобразуем в map-ку, затем эту map-ку
 		// сериализуем в json, а потом json преврщааем в стркутурку. Не очень эффективно, но он и не часто требуется.
-		var sampleConfig myConfig
-		var tmp map[string]interface{}
+		var (
+			sampleConfig myConfig
+			tmp          map[string]interface{}
+		)
+
 		err = hjson.Unmarshal(buf, &tmp)
 
 		// Не удалось распарсить - попробуем следующего кандидата
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
@@ -69,17 +75,20 @@ func readConfig() {
 		// Не удалось преобразовать map-ку в json
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
 		if err := json.Unmarshal(tmpjson, &sampleConfig); err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
+
 			continue
 		}
 
-		// Валидируем значения из конфига
+		// Валидируем значения из конфига.
 		if sampleConfig.Redis.Server == "" {
 			sampleConfig.Redis.Server = "localhost"
+
 			log.Infof("Redis server is not defined in config, using localhost")
 		}
 
@@ -119,7 +128,9 @@ func readConfig() {
 
 		config = sampleConfig
 		configLoaded = true
+
 		log.Infof("Using %s as config file", location)
+
 		break
 	}
 
@@ -129,7 +140,7 @@ func readConfig() {
 	}
 }
 
-// Хэндлер сигналов закрывает все бд, все сетевые соединения и сваливает из приложения
+// sigHandler хэндлер сигналов закрывает все бд, все сетевые соединения и сваливает из приложения.
 func sigHandler() {
 	var err error
 
@@ -148,10 +159,10 @@ func sigHandler() {
 			continue
 		}
 
-		// Чтобы не срать в логи ошибками от редиски, проставим shutdown state приложения в true
+		// Чтобы не срать в логи ошибками от редиски, проставим shutdown state приложения в true.
 		shutdown = true
 
-		// Отпишемся от всех каналов и закроем коннект к редиске
+		// Отпишемся от всех каналов и закроем коннект к редиске.
 		if err = subscriber.Unsubscribe(ctx); err != nil {
 			log.Errorf("Unable to unsubscribe from redis channels cleanly: %s", err)
 		} else {
@@ -164,7 +175,7 @@ func sigHandler() {
 			log.Debug("Close redis connection")
 		}
 
-		// close all telego stuff
+		// close all telego stuff.
 
 		if len(settingsDB) > 0 {
 			log.Debug("Closing runtime irc channel settings db")

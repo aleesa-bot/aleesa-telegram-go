@@ -11,10 +11,10 @@ import (
 
 // telego msg parser
 
-// redisMsgParser парсит json-чики прилетевшие из REDIS-ки, причём, json-чики должны быть относительно валидными
+// redisMsgParser парсит json-чики прилетевшие из REDIS-ки, причём, json-чики должны быть относительно валидными.
 func redisMsgParser(msg string) {
 	if shutdown {
-		// Если мы завершаем работу программы, то нам ничего обрабатывать не надо
+		// Если мы завершаем работу программы, то нам ничего обрабатывать не надо.
 		return
 	}
 
@@ -24,48 +24,56 @@ func redisMsgParser(msg string) {
 
 	if err := json.Unmarshal([]byte(msg), &j); err != nil {
 		log.Warnf("Unable to to parse message from redis channel: %s", err)
+
 		return
 	}
 
 	// Validate our j
 	if exist := j.From; exist == "" {
 		log.Warnf("Incorrect msg from redis, no from field: %s", msg)
+
 		return
 	}
 
 	if exist := j.Chatid; exist == "" {
 		log.Warnf("Incorrect msg from redis, no chatid field: %s", msg)
+
 		return
 	}
 
 	if exist := j.Userid; exist == "" {
 		log.Warnf("Incorrect msg from redis, no userid field: %s", msg)
+
 		return
 	}
 
 	if exist := j.Message; exist == "" {
 		log.Warnf("Incorrect msg from redis, no message field: %s", msg)
+
 		return
 	}
 
 	if exist := j.Plugin; exist == "" {
 		log.Warnf("Incorrect msg from redis, no plugin field: %s", msg)
+
 		return
 	}
 
 	if exist := j.Mode; exist == "" {
 		log.Warnf("Incorrect msg from redis, no mode field: %s", msg)
+
 		return
 	}
 
 	// j.Misc.Answer может и не быть, тогда ответа на такое сообщение не будет
 	if j.Misc.Answer == 0 {
 		log.Debug("Field Misc->Answer = 0, skipping message")
+
 		return
 	}
 
 	// j.Misc.BotNick тоже можно не передавать, тогда будет записана пустая строка
-	// j.Misc.CSign если нам его не передали, возьмём значение из конфига
+	// j.Misc.CSign если нам его не передали, возьмём значение из конфига. (но по идее нам оно тут не нужнО.)
 	if exist := j.Misc.Csign; exist == "" {
 		j.Misc.Csign = config.Csign
 	}
@@ -82,6 +90,7 @@ func redisMsgParser(msg string) {
 	// Отвалидировались, теперь вернёмся к нашим баранам.
 
 	var opts *echotron.MessageOptions
+
 	chatid, err := strconv.ParseInt(j.Chatid, 10, 64)
 
 	if err != nil {
@@ -100,8 +109,6 @@ func redisMsgParser(msg string) {
 		log.Errorf("Unable to send message to telegram api: %s", err)
 		log.Errorf("Response dump: %s", spew.Sdump(resp))
 	}
-
-	return
 }
 
 // telegramMsgParser парсит ивент, прилетевший из bot api.
@@ -128,11 +135,14 @@ func telegramMsgParser(msg *echotron.Update) {
 		// TODO: проверить, надо ли прощаться с ушедшим участником чата и попрощаться, если надо
 	}
 
+	var rmsg rMsg
+
 	switch msg.Message.Chat.Type {
 	case "private":
 		// handle private messages
-		// всегда ставим флажок, что надо отвечать.
+		rmsg.Misc.Answer = 1
 		// если фраза является командой - засылаем её в парсер команд
+
 		// Засылаем фразу в misc-канал (в роутер)
 	case "group", "supergroup":
 		// handle public (super)group messages
@@ -144,11 +154,14 @@ func telegramMsgParser(msg *echotron.Update) {
 		// Здесь же, пытаемся убрать из фразы ник или имя бота
 		// Засылаем фразу в misc-канал (в роутер)
 	case "channel":
-		// Тут мы ничего сделать не можем
+		// Тут мы ничего сделать не можем.
+	} //nolint:wsl
+}
 
-	}
+func cmdParser(cmd string) error {
+	var err error
 
-	return
+	return err
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
