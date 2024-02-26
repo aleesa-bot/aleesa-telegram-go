@@ -176,9 +176,28 @@ func sigHandler() {
 		}
 
 		// close all telego stuff.
+		resp, err := tg.LogOut()
+
+		if err != nil {
+			log.Errorf("Unable to send LogOut() to Telegram Bot API server")
+		}
+
+		if !resp.Ok {
+			log.Errorf("Telegram Bot API returns an error on LogOut(): %d, %s", resp.ErrorCode, resp.Description)
+		}
+
+		resp, err = tg.Close()
+
+		if err != nil {
+			log.Errorf("Unable to send Close() to Telegram Bot API server")
+		}
+
+		if !resp.Ok {
+			log.Errorf("Telegram Bot API returns an error on Close(): %d, %s", resp.ErrorCode, resp.Description)
+		}
 
 		if len(settingsDB) > 0 {
-			log.Debug("Closing runtime irc channel settings db")
+			log.Debug("Closing runtime bot settings db")
 
 			for _, db := range settingsDB {
 				_ = db.Close()
