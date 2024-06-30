@@ -32,12 +32,12 @@ func readConfig() {
 	for _, location := range locations {
 		fileInfo, err := os.Stat(location)
 
-		// Предполагаем, что файла либо нет, либо мы не можем его прочитать, второе надо бы логгировать, но пока забьём
+		// Предполагаем, что файла либо нет, либо мы не можем его прочитать, второе надо бы логгировать, но пока забьём.
 		if err != nil {
 			continue
 		}
 
-		// Конфиг-файл длинноват для конфига, попробуем следующего кандидата
+		// Конфиг-файл длинноват для конфига, попробуем следующего кандидата.
 		if fileInfo.Size() > 65535 {
 			log.Warnf("Config file %s is too long for config, skipping", location)
 
@@ -46,7 +46,7 @@ func readConfig() {
 
 		buf, err := os.ReadFile(location)
 
-		// Не удалось прочитать, попробуем следующего кандидата
+		// Не удалось прочитать, попробуем следующего кандидата.
 		if err != nil {
 			log.Warnf("Skip reading config file %s: %s", location, err)
 
@@ -63,7 +63,7 @@ func readConfig() {
 
 		err = hjson.Unmarshal(buf, &tmp)
 
-		// Не удалось распарсить - попробуем следующего кандидата
+		// Не удалось распарсить - попробуем следующего кандидата.
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
 
@@ -72,7 +72,7 @@ func readConfig() {
 
 		tmpjson, err := json.Marshal(tmp)
 
-		// Не удалось преобразовать map-ку в json
+		// Не удалось преобразовать map-ку в json.
 		if err != nil {
 			log.Warnf("Skip parsing config file %s: %s", location, err)
 
@@ -154,7 +154,7 @@ func sigHandler() {
 		case syscall.SIGQUIT:
 			log.Infoln("Got SIGQUIT, quitting")
 
-		// Заходим на новую итерацию, если у нас "неинтересный" сигнал
+		// Заходим на новую итерацию, если у нас "неинтересный" сигнал.
 		default:
 			continue
 		}

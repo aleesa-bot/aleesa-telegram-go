@@ -21,7 +21,7 @@ func StoreKV(db *pebble.DB, key string, value string) error {
 	return err
 }
 
-// FetchV достаёт значение по ключу
+// FetchV достаёт значение по ключу.
 func FetchV(db *pebble.DB, key string) (string, error) {
 	var kArray = []byte(key)
 
@@ -41,7 +41,7 @@ func FetchV(db *pebble.DB, key string) (string, error) {
 }
 
 // getSetting достаёт настройку из БД с настройками.
-func getSetting(chatID string, setting string) string {
+func GetSetting(chatID string, setting string) string {
 	var err error
 
 	chatHash := sha256.Sum256([]byte(chatID))
@@ -52,7 +52,7 @@ func getSetting(chatID string, setting string) string {
 		var options pebble.Options
 		// По дефолту ограничение ставится на мегабайты данных, а не на количество файлов, поэтому с дефолтными
 		// настройками порождается огромное количество файлов. Умолчальное ограничение на количество файлов - 500 штук,
-		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений
+		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений.
 		options.L0CompactionFileThreshold = 8
 		settingsDB[database], err = pebble.Open(config.DataDir+"/"+database, &options)
 
@@ -64,7 +64,7 @@ func getSetting(chatID string, setting string) string {
 
 	value, err := FetchV(settingsDB[database], setting)
 
-	// Если из базы ничего не вынулось, по каким-то причинам, то просто вернём пустую строку
+	// Если из базы ничего не вынулось, по каким-то причинам, то просто вернём пустую строку.
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			log.Debugf("Unable to get value for %s: no record found in db %s", setting, database)
@@ -82,18 +82,18 @@ func getSetting(chatID string, setting string) string {
 	return value
 }
 
-// saveSetting сохраняет настройку в БД с настройками
-func saveSetting(chatID string, setting string, value string) error {
+// saveSetting сохраняет настройку в БД с настройками.
+func GaveSetting(chatID string, setting string, value string) error {
 	var chatHash = sha256.Sum256([]byte(chatID))
 	var database = fmt.Sprintf("settings_db/%x", chatHash)
 	var err error
 
-	// Если БД не открыта, откроем её
+	// Если БД не открыта, откроем её.
 	if _, ok := settingsDB[database]; !ok {
 		var options pebble.Options
 		// По дефолту ограничение ставится на мегабайты данных, а не на количество файлов, поэтому с дефолтными
 		// настройками порождается огромное количество файлов. Умолчальное ограничение на количество файлов - 500 штук,
-		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений
+		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений.
 		options.L0CompactionFileThreshold = 8
 
 		settingsDB[database], err = pebble.Open(config.DataDir+"/"+database, &options)

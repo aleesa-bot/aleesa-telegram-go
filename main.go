@@ -86,7 +86,7 @@ func main() {
 		log.SetOutput(logfile)
 	}
 
-	// Инициализируем redis-клиента
+	// Инициализируем redis-клиента.
 	redisClient = redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", config.Redis.Server, config.Redis.Port),
 	})
@@ -94,8 +94,6 @@ func main() {
 	log.Debugf("Lazy connect() to redis at %s:%d", config.Redis.Server, config.Redis.Port)
 	subscriber = redisClient.Subscribe(ctx, config.Redis.MyChannel)
 	redisMsgChan := subscriber.Channel()
-
-	// telego init here
 
 	// Самое время поставить траппер сигналов.
 	signal.Notify(sigChan,
@@ -106,7 +104,7 @@ func main() {
 	go sigHandler()
 	go telega(config)
 
-	// Обработчик событий от редиски
+	// Обработчик событий от редиски.
 	for msg := range redisMsgChan {
 		if shutdown {
 			continue
