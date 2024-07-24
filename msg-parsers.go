@@ -120,14 +120,14 @@ func telegramMsgParser(msg *echotron.Update) {
 		return
 	}
 
-	// Сообщение о том, что этот чятик изменился, например превратился в супергруппу.
-	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) {
+	// Сообщение о том, что этот чятик изменился, например, превратился в супергруппу.
+	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) { //nolint: revive,staticcheck
 		// TODO: поддержать миграцию настроек чата на новый chatId.
 		// TODO: подумать, что можно сделать с настройками бэкэндов. Кажись, ничего, но надо глянуть.
 	}
 
 	// Люди пришли в чят.
-	if msg.Message.NewChatMembers != nil {
+	if msg.Message.NewChatMembers != nil { //nolint: revive,staticcheck
 		// TODO: проверить, надо ли приветствовать, выбрать одну из приветственных фраз, потянуть время, типа, мы пишем
 		// текст и поприветствовать вновь прибывшего.
 	}
@@ -199,28 +199,42 @@ func telegramMsgParser(msg *echotron.Update) {
 		rmsg.Misc.Botnick = ConstructPartialUserUsername(me.Result)
 		rmsg.Misc.Username = ConstructPartialUserUsername(msg.Message.From)
 		rmsg.Misc.GoodMorning = 0
-
-		// TODO: детектить нужно ли форматировать ответ. Для этого фактически надо парсить простые команды, как минимум.
 		rmsg.Misc.Msgformat = 0
 
-		data, err := json.Marshal(rmsg)
+		// Форматировать что-то всё-таки надо, но благо, это только команды, поэтому попробуем распознать сообщение как
+		// команду.
+		r, err := cmdParser(me, msg)
 
 		if err != nil {
-			log.Warnf("Unable to to serialize message for redis: %s", err)
+			log.Infof(
+				"Unable to parse message as command in private conversation with %s, message was: %s",
+				ConstructFullUserName(msg.Message.From),
+				msg.Message.Text,
+			)
 
 			return
 		}
 
-		// Заталкиваем наш json в редиску.
-		if err := redisClient.Publish(ctx, config.Redis.Channel, data).Err(); err != nil {
-			log.Warnf("Unable to send data to redis channel %s: %s", config.Redis.Channel, err)
-		} else {
-			log.Debugf("Sent msg to redis channel %s: %s", config.Redis.Channel, string(data))
+		// Если сообщение не было опознанно как команда, засылаем его "как есть" туда, в качель.
+		if !r {
+			data, err := json.Marshal(rmsg)
+
+			if err != nil {
+				log.Warnf("Unable to to serialize message for redis: %s", err)
+
+				return
+			}
+
+			// Заталкиваем наш json в редиску.
+			if err := redisClient.Publish(ctx, config.Redis.Channel, data).Err(); err != nil {
+				log.Warnf("Unable to send data to redis channel %s: %s", config.Redis.Channel, err)
+			} else {
+				log.Debugf("Sent msg to redis channel %s: %s", config.Redis.Channel, string(data))
+			}
 		}
 
 	case "group", "supergroup":
 		// Обрабатываем сообщения для групп и супергрупп. По сути это примерно одинаковые вещи/сущности.
-
 		// Цензор удаляет сообщения из чятика, если они "неправильные" - от имени других каналов, аудиосообщения,
 		// содержат картинки, видео аудио итп, это настраивается через команду !admin censor.
 		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "censor") == "1" {
@@ -335,8 +349,8 @@ func telegramMsgParser(msg *echotron.Update) {
 		rmsg.Misc.Username = ConstructPartialUserUsername(msg.Message.From)
 
 		rmsg.Misc.GoodMorning = 0
-
-		// TODO: детектить нужно ли форматировать ответ. Для этого фактически надо парсить простые команды, как минимум.
+		// Форматирование нужно только для вывода некоторых ответов на команды, команды мы ловим выше по тексту, так что
+		// смело ставим тут 0.
 		rmsg.Misc.Msgformat = 0
 
 		data, err := json.Marshal(rmsg)
@@ -354,7 +368,7 @@ func telegramMsgParser(msg *echotron.Update) {
 			log.Debugf("Sent msg to redis channel %s: %s", config.Redis.Channel, string(data))
 		}
 
-	case "channel":
+		// case "channel":
 		// Тут мы ничего сделать не можем.
 	} //nolint:wsl
 }
@@ -388,10 +402,61 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 	// Предполагаем, что длина cmd.Message.Text всегда больше или равна длине config.Csign.
 	if cmd.Message.Text[0:len(config.Csign)] == config.Csign {
 		// Повторно проверяем, что текст является простой командой.
-
 		command := cmd.Message.Text[len(config.Csign):]
 
-		// TODO: поддержать команды ver version версия, help, admin и admin *.
+		// TODO: поддержать команды admin и admin *.
+		if command == "помощь" || command == "help" {
+			help := "```\n"
+			help += fmt.Sprintf("%shelp | %sпомощь             - список команд", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sanek | %sанек | %sанекдот    - рандомный анекдот с anekdot.ru", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%sbuni                       - рандомный стрип hapi buni", config.Csign)
+			help += fmt.Sprintf("%sbunny | %srabbit | %sкролик  - кролик", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%scat | %sкис                 - кошечка", config.Csign, config.Csign)
+			help += fmt.Sprintf("%scoin | %sмонетка            - подбросить монетку - орёл или решка?", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sdig | %sкопать              - заняться археологией", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sdrink | %sпраздник          - какой сегодня праздник?", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfish | %sрыба | %sрыбка      - порыбачить", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfishing | %sрыбалка         - порыбачить", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sf | %sф                     - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfortune | %sфортунка        - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfox | %sлис                 - лисичка", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfriday | %sпятница          - а не пятница ли сегодня?", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sfrog | %sлягушка            - лягушка", config.Csign, config.Csign)
+			help += fmt.Sprintf("%shorse | %sлошадка           - лошадка", config.Csign, config.Csign)
+			help += fmt.Sprintf("%slat | %sлат                 - сгенерить фразу из крылатых латинских выражений", config.Csign, config.Csign)
+			help += fmt.Sprintf("%smonkeyuser                 - рандомный стрип MonkeyUser", config.Csign)
+			help += fmt.Sprintf("%sowl | %sсова | %sсыч         - сова", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%sproverb | %sпословица       - рандомная русская пословица", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sping | %sпинг               - попинговать бота", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sroll | %sdice | %sкости      - бросить кости", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%ssnail | %sулитка            - улитка", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sver | %sversion | %sверсия   - что-то про версию ПО", config.Csign, config.Csign, config.Csign)
+			help += fmt.Sprintf("%sw город | %sп город         - погода в указанном городе", config.Csign, config.Csign)
+			help += fmt.Sprintf("%sweather город              - погода в указанном городе", config.Csign)
+			help += fmt.Sprintf("%sпогода город               - погода в указанном городе", config.Csign)
+			help += fmt.Sprintf("%sпогодка город              - погода в указанном городе", config.Csign)
+			help += fmt.Sprintf("%sпогадка город              - погода в указанном городе", config.Csign)
+			help += fmt.Sprintf("%sxkcd                       - рандомный стрип с сайта xkcd.ru", config.Csign)
+			help += fmt.Sprintf("%skarma фраза | %sкарма фраза - посмотреть карму фразы", config.Csign, config.Csign)
+			help += "```\n"
+			help += "Но на самом деле я бот больше для общения, чем для исполнения команд.\n"
+			help += "Поговоришь со мной?"
+
+			var opts *echotron.MessageOptions
+
+			chatid := cmd.Message.Chat.ID
+
+			resp, err := tg.SendMessage(help, chatid, opts)
+
+			if err != nil || !resp.Ok {
+				// TODO: поддержать миграцию группы в супергруппу, поддержать вариант, когда бот замьючен.
+				// Красиво оформить ошибку, с полями итд, как tracedump, только ошибка.
+				// N.B. тут может быть сообщение о том, что группа превратилась в супергруппу, или что бот не имеет прав писать
+				// сообщения в чятик. Это надо бы отслеживать и хэндлить.
+				log.Errorf("Unable to send message to telegram api: %s", err)
+				log.Errorf("Response dump: %s", spew.Sdump(resp))
+			}
+		}
 
 		// Команды в одно слово.
 		cmds := []string{
@@ -454,7 +519,7 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 				smsg.Misc.Username = ConstructTelegramHighlightName(cmd.Message.From)
 				smsg.Misc.Msgformat = 1
 
-				break
+				break //nolint: gosimple
 			}
 		}
 
