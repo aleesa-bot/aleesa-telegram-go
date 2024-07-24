@@ -20,99 +20,345 @@ package echotron
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
-// content is a struct which contains a file's name, its type and its data.
-type content struct {
-	fname string
-	ftype string
-	fdata []byte
+type client struct {
+	*http.Client
+	*sync.RWMutex
+	cl       map[string]*rate.Limiter // chat based limiter
+	gl       *rate.Limiter            // global limiter
+	climiter func() *rate.Limiter
 }
 
-// sendGetRequest is used to send an HTTP GET request.
-func sendGetRequest(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+var lclient = newClient()
+
+// SetGlobalRequestLimit sets the global rate limit for requests to the Telegram API.
+// A duration of 0 disables the rate limiter, allowing unlimited requests.
+// By default the duration of this limiter is set to time.Second/30.
+func SetGlobalRequestLimit(d time.Duration) {
+	lclient.Lock()
+	lclient.gl = rate.NewLimiter(rate.Every(d), 10)
+	lclient.Unlock()
+}
+
+// SetChatRequestLimit sets the per-chat rate limit for requests to the Telegram API.
+// A duration of 0 disables the rate limiter, allowing unlimited requests.
+// By default the duration of this limiter is set to time.Minute/20.
+func SetChatRequestLimit(d time.Duration) {
+	lclient.Lock()
+	lclient.cl = make(map[string]*rate.Limiter)
+	lclient.climiter = func() *rate.Limiter {
+		return rate.NewLimiter(rate.Every(d), 1)
+	}
+	lclient.Unlock()
+}
+
+func newClient() *client {
+	return &client{
+		Client:  new(http.Client),
+		RWMutex: new(sync.RWMutex),
+		cl:      make(map[string]*rate.Limiter),
+		gl:      rate.NewLimiter(rate.Every(time.Second/30), 10),
+		climiter: func() *rate.Limiter {
+			return rate.NewLimiter(rate.Every(time.Minute/20), 1)
+		},
+	}
+}
+
+func (c client) wait(chatID string) error {
+	c.RLock()
+	defer c.RUnlock()
+
+	ctx := context.Background()
+	// If the chatID is empty, it's a general API call like GetUpdates, GetMe
+	// and similar, so skip the per-chat request limit wait.
+	if chatID != "" {
+		// If no limiter exists for a chat, create one.
+		l, ok := c.cl[chatID]
+		if !ok {
+			l = c.climiter()
+			c.cl[chatID] = l
+		}
+
+		// Make sure to respect the single chat limit of requests.
+		if err := l.Wait(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Make sure to respect the global limit of requests.
+	return c.gl.Wait(ctx)
+}
+
+func (c client) doGet(reqURL string) ([]byte, error) {
+	resp, err := c.Get(reqURL)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
-
 	return data, nil
 }
 
-// sendPostRequest is used to send an HTTP POST request.
-func sendPostRequest(url string, files ...content) ([]byte, error) {
-	var buf = new(bytes.Buffer)
-	var w = multipart.NewWriter(buf)
+func (c client) doPost(reqURL string, files ...content) ([]byte, error) {
+	var (
+		buf = new(bytes.Buffer)
+		w   = multipart.NewWriter(buf)
+	)
 
 	for _, f := range files {
 		part, err := w.CreateFormFile(f.ftype, filepath.Base(f.fname))
 		if err != nil {
-			return []byte{}, err
+			return nil, err
 		}
 		part.Write(f.fdata)
 	}
-
 	w.Close()
 
-	req, err := http.NewRequest("POST", url, buf)
+	req, err := http.NewRequest(http.MethodPost, reqURL, buf)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	req.Header.Add("Content-Type", w.FormDataContentType())
 
-	var client = new(http.Client)
-	res, err := client.Do(req)
+	res, err := c.Do(req)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
-
-	cnt, err := io.ReadAll(res.Body)
-	if err != nil {
-		return []byte{}, err
-	}
-	return cnt, nil
+	return io.ReadAll(res.Body)
 }
 
-// sendPostForm is used to send an "application/x-www-form-urlencoded" through an HTTP POST request.
-func sendPostForm(reqURL string, keyVals map[string]string) ([]byte, error) {
+func (c client) doPostForm(reqURL string, keyVals map[string]string) ([]byte, error) {
 	var form = make(url.Values)
 
 	for k, v := range keyVals {
 		form.Add(k, v)
 	}
 
-	request, err := http.NewRequest("POST", reqURL, strings.NewReader(form.Encode()))
+	req, err := http.NewRequest(http.MethodPost, reqURL, strings.NewReader(form.Encode()))
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
-	request.PostForm = form
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.PostForm = form
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	var client http.Client
-
-	response, err := client.Do(request)
+	res, err := c.Do(req)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
-	defer response.Body.Close()
+	defer res.Body.Close()
+	return io.ReadAll(res.Body)
+}
 
-	content, err := io.ReadAll(response.Body)
+func (c client) sendFile(file, thumbnail InputFile, url, fileType string) (res []byte, err error) {
+	var cnt []content
+
+	if file.id != "" {
+		url = fmt.Sprintf("%s&%s=%s", url, fileType, file.id)
+	} else if file.url != "" {
+		url = fmt.Sprintf("%s&%s=%s", url, fileType, file.url)
+	} else if c, e := toContent(fileType, file); e == nil {
+		cnt = append(cnt, c)
+	} else {
+		err = e
+	}
+
+	if c, e := toContent("thumbnail", thumbnail); e == nil {
+		cnt = append(cnt, c)
+	} else {
+		err = e
+	}
+
+	if len(cnt) > 0 {
+		res, err = c.doPost(url, cnt...)
+	} else {
+		res, err = c.doGet(url)
+	}
+	return
+}
+
+func (c client) get(base, endpoint string, vals url.Values, v APIResponse) error {
+	url, err := url.JoinPath(base, endpoint)
 	if err != nil {
-		return []byte{}, err
+		return err
 	}
 
-	return content, nil
+	if vals != nil {
+		if queries := vals.Encode(); queries != "" {
+			url = fmt.Sprintf("%s?%s", url, queries)
+		}
+	}
+
+	if err := c.wait(vals.Get("chat_id")); err != nil {
+		return err
+	}
+
+	cnt, err := c.doGet(url)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(cnt, v); err != nil {
+		return err
+	}
+	return check(v)
+}
+
+func (c client) postFile(base, endpoint, fileType string, file, thumbnail InputFile, vals url.Values, v APIResponse) error {
+	url, err := joinURL(base, endpoint, vals)
+	if err != nil {
+		return err
+	}
+
+	if err := c.wait(vals.Get("chat_id")); err != nil {
+		return err
+	}
+
+	cnt, err := c.sendFile(file, thumbnail, url, fileType)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(cnt, v); err != nil {
+		return err
+	}
+	return check(v)
+}
+
+func (c client) postMedia(base, endpoint string, editSingle bool, vals url.Values, v APIResponse, files ...InputMedia) error {
+	url, err := joinURL(base, endpoint, vals)
+	if err != nil {
+		return err
+	}
+
+	if err := c.wait(vals.Get("chat_id")); err != nil {
+		return err
+	}
+
+	cnt, err := c.sendMediaFiles(url, editSingle, files...)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(cnt, v); err != nil {
+		return err
+	}
+	return check(v)
+}
+
+func (c client) postStickers(base, endpoint string, vals url.Values, v APIResponse, stickers ...InputSticker) error {
+	url, err := joinURL(base, endpoint, vals)
+	if err != nil {
+		return err
+	}
+
+	if err := c.wait(vals.Get("chat_id")); err != nil {
+		return err
+	}
+
+	cnt, err := c.sendStickers(url, stickers...)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(cnt, v); err != nil {
+		return err
+	}
+	return check(v)
+}
+
+func (c client) sendMediaFiles(url string, editSingle bool, files ...InputMedia) (res []byte, err error) {
+	var (
+		med []mediaEnvelope
+		cnt []content
+		jsn []byte
+	)
+
+	for _, file := range files {
+		var im mediaEnvelope
+		var cntArr []content
+
+		media := file.media()
+		thumbnail := file.thumbnail()
+
+		im, cntArr, err = processMedia(media, thumbnail)
+		if err != nil {
+			return
+		}
+
+		im.InputMedia = file
+
+		med = append(med, im)
+		cnt = append(cnt, cntArr...)
+	}
+
+	if editSingle {
+		jsn, err = json.Marshal(med[0])
+	} else {
+		jsn, err = json.Marshal(med)
+	}
+
+	if err != nil {
+		return
+	}
+
+	url = fmt.Sprintf("%s&media=%s", url, jsn)
+
+	if len(cnt) > 0 {
+		return c.doPost(url, cnt...)
+	}
+	return c.doGet(url)
+}
+
+func (c client) sendStickers(url string, stickers ...InputSticker) (res []byte, err error) {
+	var (
+		sti []stickerEnvelope
+		cnt []content
+		jsn []byte
+	)
+
+	for _, s := range stickers {
+		var se stickerEnvelope
+		var cntArr []content
+
+		se, cntArr, err = processSticker(s.Sticker)
+		if err != nil {
+			return
+		}
+
+		se.InputSticker = s
+
+		sti = append(sti, se)
+		cnt = append(cnt, cntArr...)
+	}
+
+	if len(sti) == 1 {
+		jsn, _ = json.Marshal(sti[0])
+		url = fmt.Sprintf("%s&sticker=%s", url, jsn)
+	} else {
+		jsn, _ = json.Marshal(sti)
+		url = fmt.Sprintf("%s&stickers=%s", url, jsn)
+	}
+
+	if len(cnt) > 0 {
+		return c.doPost(url, cnt...)
+	}
+	return c.doGet(url)
 }

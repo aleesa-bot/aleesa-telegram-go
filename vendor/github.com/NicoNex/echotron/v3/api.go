@@ -27,21 +27,32 @@ import (
 
 // API is the object that contains all the functions that wrap those of the Telegram Bot API.
 type API struct {
-	token string
-	base  string
+	client *client
+	token  string
+	base   string
 }
 
 // NewAPI returns a new API object.
 func NewAPI(token string) API {
 	return API{
-		token: token,
-		base:  fmt.Sprintf("https://api.telegram.org/bot%s/", token),
+		token:  token,
+		base:   fmt.Sprintf("https://api.telegram.org/bot%s/", token),
+		client: lclient,
+	}
+}
+
+// NewLocalAPI is like NewAPI but allows to use a local API server.
+func NewLocalAPI(url, token string) API {
+	return API{
+		token:  token,
+		base:   url,
+		client: lclient,
 	}
 }
 
 // GetUpdates is used to receive incoming updates using long polling.
 func (a API) GetUpdates(opts *UpdateOptions) (res APIResponseUpdate, err error) {
-	return get[APIResponseUpdate](a.base, "getUpdates", urlValues(opts))
+	return res, a.client.get(a.base, "getUpdates", urlValues(opts), &res)
 }
 
 // SetWebhook is used to specify a url and receive incoming updates via an outgoing webhook.
@@ -60,7 +71,7 @@ func (a API) SetWebhook(webhookURL string, dropPendingUpdates bool, opts *Webhoo
 	addValues(vals, opts)
 	url = fmt.Sprintf("%s?%s", strings.TrimSuffix(url, "/"), vals.Encode())
 
-	cnt, err := sendPostForm(url, keyVal)
+	cnt, err := a.client.doPostForm(url, keyVal)
 	if err != nil {
 		return
 	}
@@ -78,17 +89,17 @@ func (a API) DeleteWebhook(dropPendingUpdates bool) (res APIResponseBase, err er
 	var vals = make(url.Values)
 	vals.Set("drop_pending_updates", btoa(dropPendingUpdates))
 
-	return get[APIResponseBase](a.base, "deleteWebhook", vals)
+	return res, a.client.get(a.base, "deleteWebhook", vals, &res)
 }
 
 // GetWebhookInfo is used to get current webhook status.
 func (a API) GetWebhookInfo() (res APIResponseWebhook, err error) {
-	return get[APIResponseWebhook](a.base, "getWebhookInfo", nil)
+	return res, a.client.get(a.base, "getWebhookInfo", nil, &res)
 }
 
 // GetMe is a simple method for testing your bot's auth token.
 func (a API) GetMe() (res APIResponseUser, err error) {
-	return get[APIResponseUser](a.base, "getMe", nil)
+	return res, a.client.get(a.base, "getMe", nil, &res)
 }
 
 // LogOut is used to log out from the cloud Bot API server before launching the bot locally.
@@ -96,14 +107,14 @@ func (a API) GetMe() (res APIResponseUser, err error) {
 // After a successful call, you can immediately log in on a local server,
 // but will not be able to log in back to the cloud Bot API server for 10 minutes.
 func (a API) LogOut() (res APIResponseBool, err error) {
-	return get[APIResponseBool](a.base, "logOut", nil)
+	return res, a.client.get(a.base, "logOut", nil, &res)
 }
 
 // Close is used to close the bot instance before moving it from one local server to another.
 // You need to delete the webhook before calling this method to ensure that the bot isn't launched again after server restart.
 // The method will return error 429 in the first 10 minutes after the bot is launched.
 func (a API) Close() (res APIResponseBool, err error) {
-	return get[APIResponseBool](a.base, "close", nil)
+	return res, a.client.get(a.base, "close", nil, &res)
 }
 
 // SendMessage is used to send text messages.
@@ -112,7 +123,7 @@ func (a API) SendMessage(text string, chatID int64, opts *MessageOptions) (res A
 
 	vals.Set("text", text)
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseMessage](a.base, "sendMessage", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendMessage", addValues(vals, opts), &res)
 }
 
 // ForwardMessage is used to forward messages of any kind.
@@ -123,7 +134,7 @@ func (a API) ForwardMessage(chatID, fromChatID int64, messageID int, opts *Forwa
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("from_chat_id", itoa(fromChatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseMessage](a.base, "forwardMessage", addValues(vals, opts))
+	return res, a.client.get(a.base, "forwardMessage", addValues(vals, opts), &res)
 }
 
 // ForwardMessages is used to forward multiple messages of any kind.
@@ -141,7 +152,7 @@ func (a API) ForwardMessages(chatID, fromChatID int64, messageIDs []int, opts *F
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("from_chat_id", itoa(fromChatID))
 	vals.Set("message_ids", string(msgIDs))
-	return get[APIResponseMessageIDs](a.base, "forwardMessages", addValues(vals, opts))
+	return res, a.client.get(a.base, "forwardMessages", addValues(vals, opts), &res)
 }
 
 // CopyMessage is used to copy messages of any kind.
@@ -154,7 +165,7 @@ func (a API) CopyMessage(chatID, fromChatID int64, messageID int, opts *CopyOpti
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("from_chat_id", itoa(fromChatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseMessageID](a.base, "copyMessage", addValues(vals, opts))
+	return res, a.client.get(a.base, "copyMessage", addValues(vals, opts), &res)
 }
 
 // CopyMessages is used to copy messages of any kind.
@@ -174,7 +185,7 @@ func (a API) CopyMessages(chatID, fromChatID int64, messageIDs []int, opts *Copy
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("from_chat_id", itoa(fromChatID))
 	vals.Set("message_ids", string(msgIDs))
-	return get[APIResponseMessageIDs](a.base, "copyMessages", addValues(vals, opts))
+	return res, a.client.get(a.base, "copyMessages", addValues(vals, opts), &res)
 }
 
 // SendPhoto is used to send photos.
@@ -182,7 +193,7 @@ func (a API) SendPhoto(file InputFile, chatID int64, opts *PhotoOptions) (res AP
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendPhoto", "photo", file, InputFile{}, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendPhoto", "photo", file, InputFile{}, addValues(vals, opts), &res)
 }
 
 // SendAudio is used to send audio files,
@@ -199,7 +210,7 @@ func (a API) SendAudio(file InputFile, chatID int64, opts *AudioOptions) (res AP
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendAudio", "audio", file, thumbnail, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendAudio", "audio", file, thumbnail, addValues(vals, opts), &res)
 }
 
 // SendDocument is used to send general files.
@@ -214,7 +225,7 @@ func (a API) SendDocument(file InputFile, chatID int64, opts *DocumentOptions) (
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendDocument", "document", file, thumbnail, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendDocument", "document", file, thumbnail, addValues(vals, opts), &res)
 }
 
 // SendVideo is used to send video files.
@@ -230,7 +241,7 @@ func (a API) SendVideo(file InputFile, chatID int64, opts *VideoOptions) (res AP
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendVideo", "video", file, thumbnail, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendVideo", "video", file, thumbnail, addValues(vals, opts), &res)
 }
 
 // SendAnimation is used to send animation files (GIF or H.264/MPEG-4 AVC video without sound).
@@ -245,7 +256,7 @@ func (a API) SendAnimation(file InputFile, chatID int64, opts *AnimationOptions)
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendAnimation", "animation", file, thumbnail, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendAnimation", "animation", file, thumbnail, addValues(vals, opts), &res)
 }
 
 // SendVoice is used to send audio files, if you want Telegram clients to display the file as a playable voice message.
@@ -254,7 +265,7 @@ func (a API) SendVoice(file InputFile, chatID int64, opts *VoiceOptions) (res AP
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendVoice", "voice", file, InputFile{}, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendVoice", "voice", file, InputFile{}, addValues(vals, opts), &res)
 }
 
 // SendVideoNote is used to send video messages.
@@ -269,7 +280,7 @@ func (a API) SendVideoNote(file InputFile, chatID int64, opts *VideoNoteOptions)
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseMessage](a.base, "sendVideoNote", "video_note", file, thumbnail, addValues(vals, opts))
+	return res, a.client.postFile(a.base, "sendVideoNote", "video_note", file, thumbnail, addValues(vals, opts), &res)
 }
 
 // SendMediaGroup is used to send a group of photos, videos, documents or audios as an album.
@@ -278,7 +289,7 @@ func (a API) SendMediaGroup(chatID int64, media []GroupableInputMedia, opts *Med
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return postMedia[APIResponseMessageArray](a.base, "sendMediaGroup", false, addValues(vals, opts), toInputMedia(media)...)
+	return res, a.client.postMedia(a.base, "sendMediaGroup", false, addValues(vals, opts), &res, toInputMedia(media)...)
 }
 
 // SendLocation is used to send point on the map.
@@ -288,7 +299,7 @@ func (a API) SendLocation(chatID int64, latitude, longitude float64, opts *Locat
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("latitude", ftoa(latitude))
 	vals.Set("longitude", ftoa(longitude))
-	return get[APIResponseMessage](a.base, "sendLocation", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendLocation", addValues(vals, opts), &res)
 }
 
 // EditMessageLiveLocation is used to edit live location messages.
@@ -298,12 +309,12 @@ func (a API) EditMessageLiveLocation(msg MessageIDOptions, latitude, longitude f
 
 	vals.Set("latitude", ftoa(latitude))
 	vals.Set("longitude", ftoa(longitude))
-	return get[APIResponseMessage](a.base, "editMessageLiveLocation", addValues(addValues(vals, msg), opts))
+	return res, a.client.get(a.base, "editMessageLiveLocation", addValues(addValues(vals, msg), opts), &res)
 }
 
 // StopMessageLiveLocation is used to stop updating a live location message before `LivePeriod` expires.
-func (a API) StopMessageLiveLocation(msg MessageIDOptions, opts *MessageReplyMarkup) (res APIResponseMessage, err error) {
-	return get[APIResponseMessage](a.base, "stopMessageLiveLocation", addValues(urlValues(msg), opts))
+func (a API) StopMessageLiveLocation(msg MessageIDOptions, opts *StopLocationOptions) (res APIResponseMessage, err error) {
+	return res, a.client.get(a.base, "stopMessageLiveLocation", addValues(urlValues(msg), opts), &res)
 }
 
 // SendVenue is used to send information about a venue.
@@ -315,7 +326,7 @@ func (a API) SendVenue(chatID int64, latitude, longitude float64, title, address
 	vals.Set("longitude", ftoa(longitude))
 	vals.Set("title", title)
 	vals.Set("address", address)
-	return get[APIResponseMessage](a.base, "sendVenue", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendVenue", addValues(vals, opts), &res)
 }
 
 // SendContact is used to send phone contacts.
@@ -325,11 +336,11 @@ func (a API) SendContact(phoneNumber, firstName string, chatID int64, opts *Cont
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("phone_number", phoneNumber)
 	vals.Set("first_name", firstName)
-	return get[APIResponseMessage](a.base, "sendContact", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendContact", addValues(vals, opts), &res)
 }
 
 // SendPoll is used to send a native poll.
-func (a API) SendPoll(chatID int64, question string, options []string, opts *PollOptions) (res APIResponseMessage, err error) {
+func (a API) SendPoll(chatID int64, question string, options []InputPollOption, opts *PollOptions) (res APIResponseMessage, err error) {
 	var vals = make(url.Values)
 
 	pollOpts, err := json.Marshal(options)
@@ -340,7 +351,7 @@ func (a API) SendPoll(chatID int64, question string, options []string, opts *Pol
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("question", question)
 	vals.Set("options", string(pollOpts))
-	return get[APIResponseMessage](a.base, "sendPoll", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendPoll", addValues(vals, opts), &res)
 }
 
 // SendDice is used to send an animated emoji that will display a random value.
@@ -349,7 +360,7 @@ func (a API) SendDice(chatID int64, emoji DiceEmoji, opts *BaseOptions) (res API
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("emoji", string(emoji))
-	return get[APIResponseMessage](a.base, "sendDice", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendDice", addValues(vals, opts), &res)
 }
 
 // SendChatAction is used to tell the user that something is happening on the bot's side.
@@ -359,7 +370,7 @@ func (a API) SendChatAction(action ChatAction, chatID int64, opts *ChatActionOpt
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("action", string(action))
-	return get[APIResponseBool](a.base, "sendChatAction", addValues(vals, opts))
+	return res, a.client.get(a.base, "sendChatAction", addValues(vals, opts), &res)
 }
 
 // SetMessageReaction is used to change the chosen reactions on a message.
@@ -371,7 +382,7 @@ func (a API) SetMessageReaction(chatID int64, messageID int, opts *MessageReacti
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseBool](a.base, "setMessageReaction", addValues(vals, opts))
+	return res, a.client.get(a.base, "setMessageReaction", addValues(vals, opts), &res)
 }
 
 // GetUserProfilePhotos is used to get a list of profile pictures for a user.
@@ -379,7 +390,7 @@ func (a API) GetUserProfilePhotos(userID int64, opts *UserProfileOptions) (res A
 	var vals = make(url.Values)
 
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseUserProfile](a.base, "getUserProfilePhotos", addValues(vals, opts))
+	return res, a.client.get(a.base, "getUserProfilePhotos", addValues(vals, opts), &res)
 }
 
 // GetFile returns the basic info about a file and prepares it for downloading.
@@ -391,14 +402,14 @@ func (a API) GetFile(fileID string) (res APIResponseFile, err error) {
 	var vals = make(url.Values)
 
 	vals.Set("file_id", fileID)
-	return get[APIResponseFile](a.base, "getFile", vals)
+	return res, a.client.get(a.base, "getFile", vals, &res)
 }
 
 // DownloadFile returns the bytes of the file corresponding to the given filePath.
 // This function is callable for at least 1 hour since the call to GetFile.
 // When the download expires a new one can be requested by calling GetFile again.
 func (a API) DownloadFile(filePath string) ([]byte, error) {
-	return sendGetRequest(fmt.Sprintf(
+	return a.client.doGet(fmt.Sprintf(
 		"https://api.telegram.org/file/bot%s/%s",
 		a.token,
 		filePath,
@@ -414,7 +425,7 @@ func (a API) BanChatMember(chatID, userID int64, opts *BanOptions) (res APIRespo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseBool](a.base, "banChatMember", addValues(vals, opts))
+	return res, a.client.get(a.base, "banChatMember", addValues(vals, opts), &res)
 }
 
 // UnbanChatMember is used to unban a previously banned user in a supergroup or channel.
@@ -428,7 +439,7 @@ func (a API) UnbanChatMember(chatID, userID int64, opts *UnbanOptions) (res APIR
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseBool](a.base, "unbanChatMember", addValues(vals, opts))
+	return res, a.client.get(a.base, "unbanChatMember", addValues(vals, opts), &res)
 }
 
 // RestrictChatMember is used to restrict a user in a supergroup.
@@ -436,15 +447,15 @@ func (a API) UnbanChatMember(chatID, userID int64, opts *UnbanOptions) (res APIR
 func (a API) RestrictChatMember(chatID, userID int64, permissions ChatPermissions, opts *RestrictOptions) (res APIResponseBool, err error) {
 	var vals = make(url.Values)
 
-	perm, err := serializePerms(permissions)
+	perm, err := json.Marshal(permissions)
 	if err != nil {
 		return
 	}
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	vals.Set("permissions", perm)
-	return get[APIResponseBool](a.base, "restrictChatMember", addValues(vals, opts))
+	vals.Set("permissions", string(perm))
+	return res, a.client.get(a.base, "restrictChatMember", addValues(vals, opts), &res)
 }
 
 // PromoteChatMember is used to promote or demote a user in a supergroup or a channel.
@@ -454,7 +465,7 @@ func (a API) PromoteChatMember(chatID, userID int64, opts *PromoteOptions) (res 
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseBool](a.base, "promoteChatMember", addValues(vals, opts))
+	return res, a.client.get(a.base, "promoteChatMember", addValues(vals, opts), &res)
 }
 
 // SetChatAdministratorCustomTitle is used to set a custom title for an administrator in a supergroup promoted by the bot.
@@ -464,7 +475,7 @@ func (a API) SetChatAdministratorCustomTitle(chatID, userID int64, customTitle s
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
 	vals.Set("custom_title", customTitle)
-	return get[APIResponseBool](a.base, "setChatAdministratorCustomTitle", vals)
+	return res, a.client.get(a.base, "setChatAdministratorCustomTitle", vals, &res)
 }
 
 // BanChatSenderChat is used to ban a channel chat in a supergroup or a channel.
@@ -475,7 +486,7 @@ func (a API) BanChatSenderChat(chatID, senderChatID int64) (res APIResponseBool,
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("sender_chat_id", itoa(senderChatID))
-	return get[APIResponseBool](a.base, "banChatSenderChat", vals)
+	return res, a.client.get(a.base, "banChatSenderChat", vals, &res)
 }
 
 // UnbanChatSenderChat is used to unban a previously channel chat in a supergroup or channel.
@@ -485,7 +496,7 @@ func (a API) UnbanChatSenderChat(chatID, senderChatID int64) (res APIResponseBoo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("sender_chat_id", itoa(senderChatID))
-	return get[APIResponseBool](a.base, "unbanChatSenderChat", vals)
+	return res, a.client.get(a.base, "unbanChatSenderChat", vals, &res)
 }
 
 // SetChatPermissions is used to set default chat permissions for all members.
@@ -493,14 +504,14 @@ func (a API) UnbanChatSenderChat(chatID, senderChatID int64) (res APIResponseBoo
 func (a API) SetChatPermissions(chatID int64, permissions ChatPermissions, opts *ChatPermissionsOptions) (res APIResponseBool, err error) {
 	var vals = make(url.Values)
 
-	perm, err := serializePerms(permissions)
+	perm, err := json.Marshal(permissions)
 	if err != nil {
 		return
 	}
 
 	vals.Set("chat_id", itoa(chatID))
-	vals.Set("permissions", perm)
-	return get[APIResponseBool](a.base, "setChatPermissions", addValues(vals, opts))
+	vals.Set("permissions", string(perm))
+	return res, a.client.get(a.base, "setChatPermissions", addValues(vals, opts), &res)
 }
 
 // ExportChatInviteLink is used to generate a new primary invite link for a chat;
@@ -510,7 +521,7 @@ func (a API) ExportChatInviteLink(chatID int64) (res APIResponseString, err erro
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseString](a.base, "exportChatInviteLink", vals)
+	return res, a.client.get(a.base, "exportChatInviteLink", vals, &res)
 }
 
 // CreateChatInviteLink is used to create an additional invite link for a chat.
@@ -520,7 +531,7 @@ func (a API) CreateChatInviteLink(chatID int64, opts *InviteLinkOptions) (res AP
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseInviteLink](a.base, "createChatInviteLink", addValues(vals, opts))
+	return res, a.client.get(a.base, "createChatInviteLink", addValues(vals, opts), &res)
 }
 
 // EditChatInviteLink is used to edit a non-primary invite link created by the bot.
@@ -530,7 +541,7 @@ func (a API) EditChatInviteLink(chatID int64, inviteLink string, opts *InviteLin
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("invite_link", inviteLink)
-	return get[APIResponseInviteLink](a.base, "editChatInviteLink", addValues(vals, opts))
+	return res, a.client.get(a.base, "editChatInviteLink", addValues(vals, opts), &res)
 }
 
 // RevokeChatInviteLink is used to revoke an invite link created by the bot.
@@ -541,7 +552,7 @@ func (a API) RevokeChatInviteLink(chatID int64, inviteLink string) (res APIRespo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("invite_link", inviteLink)
-	return get[APIResponseInviteLink](a.base, "editChatInviteLink", vals)
+	return res, a.client.get(a.base, "editChatInviteLink", vals, &res)
 }
 
 // ApproveChatJoinRequest is used to approve a chat join request.
@@ -551,7 +562,7 @@ func (a API) ApproveChatJoinRequest(chatID, userID int64) (res APIResponseBool, 
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseBool](a.base, "approveChatJoinRequest", vals)
+	return res, a.client.get(a.base, "approveChatJoinRequest", vals, &res)
 }
 
 // DeclineChatJoinRequest is used to decline a chat join request.
@@ -561,7 +572,7 @@ func (a API) DeclineChatJoinRequest(chatID, userID int64) (res APIResponseBool, 
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseBool](a.base, "declineChatJoinRequest", vals)
+	return res, a.client.get(a.base, "declineChatJoinRequest", vals, &res)
 }
 
 // SetChatPhoto is used to set a new profile photo for the chat.
@@ -571,7 +582,7 @@ func (a API) SetChatPhoto(file InputFile, chatID int64) (res APIResponseBool, er
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return postFile[APIResponseBool](a.base, "setChatPhoto", "photo", file, InputFile{}, vals)
+	return res, a.client.postFile(a.base, "setChatPhoto", "photo", file, InputFile{}, vals, &res)
 }
 
 // DeleteChatPhoto is used to delete a chat photo.
@@ -581,7 +592,7 @@ func (a API) DeleteChatPhoto(chatID int64) (res APIResponseBool, err error) {
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "deleteChatPhoto", vals)
+	return res, a.client.get(a.base, "deleteChatPhoto", vals, &res)
 }
 
 // SetChatTitle is used to change the title of a chat.
@@ -592,7 +603,7 @@ func (a API) SetChatTitle(chatID int64, title string) (res APIResponseBool, err 
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("title", title)
-	return get[APIResponseBool](a.base, "setChatTitle", vals)
+	return res, a.client.get(a.base, "setChatTitle", vals, &res)
 }
 
 // SetChatDescription is used to change the description of a group, a supergroup or a channel.
@@ -602,7 +613,7 @@ func (a API) SetChatDescription(chatID int64, description string) (res APIRespon
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("description", description)
-	return get[APIResponseBool](a.base, "setChatDescription", vals)
+	return res, a.client.get(a.base, "setChatDescription", vals, &res)
 }
 
 // PinChatMessage is used to add a message to the list of pinned messages in the chat.
@@ -613,7 +624,7 @@ func (a API) PinChatMessage(chatID int64, messageID int, opts *PinMessageOptions
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseBool](a.base, "pinChatMessage", addValues(vals, opts))
+	return res, a.client.get(a.base, "pinChatMessage", addValues(vals, opts), &res)
 }
 
 // UnpinChatMessage is used to remove a message from the list of pinned messages in the chat.
@@ -624,7 +635,7 @@ func (a API) UnpinChatMessage(chatID int64, messageID int) (res APIResponseBool,
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseBool](a.base, "unpinChatMessage", vals)
+	return res, a.client.get(a.base, "unpinChatMessage", vals, &res)
 }
 
 // UnpinAllChatMessages is used to clear the list of pinned messages in a chat.
@@ -634,7 +645,7 @@ func (a API) UnpinAllChatMessages(chatID int64) (res APIResponseBool, err error)
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "unpinAllChatMessages", vals)
+	return res, a.client.get(a.base, "unpinAllChatMessages", vals, &res)
 }
 
 // LeaveChat is used to make the bot leave a group, supergroup or channel.
@@ -642,7 +653,7 @@ func (a API) LeaveChat(chatID int64) (res APIResponseBool, err error) {
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "leaveChat", vals)
+	return res, a.client.get(a.base, "leaveChat", vals, &res)
 }
 
 // GetChat is used to get up to date information about the chat.
@@ -651,7 +662,7 @@ func (a API) GetChat(chatID int64) (res APIResponseChat, err error) {
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseChat](a.base, "getChat", vals)
+	return res, a.client.get(a.base, "getChat", vals, &res)
 }
 
 // GetChatAdministrators is used to get a list of administrators in a chat.
@@ -659,7 +670,7 @@ func (a API) GetChatAdministrators(chatID int64) (res APIResponseAdministrators,
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseAdministrators](a.base, "getChatAdministrators", vals)
+	return res, a.client.get(a.base, "getChatAdministrators", vals, &res)
 }
 
 // GetChatMemberCount is used to get the number of members in a chat.
@@ -667,7 +678,7 @@ func (a API) GetChatMemberCount(chatID int64) (res APIResponseInteger, err error
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseInteger](a.base, "getChatMemberCount", vals)
+	return res, a.client.get(a.base, "getChatMemberCount", vals, &res)
 }
 
 // GetChatMember is used to get information about a member of a chat.
@@ -676,7 +687,7 @@ func (a API) GetChatMember(chatID, userID int64) (res APIResponseChatMember, err
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseChatMember](a.base, "getChatMember", vals)
+	return res, a.client.get(a.base, "getChatMember", vals, &res)
 }
 
 // SetChatStickerSet is used to set a new group sticker set for a supergroup.
@@ -687,7 +698,7 @@ func (a API) SetChatStickerSet(chatID int64, stickerSetName string) (res APIResp
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("sticker_set_name", stickerSetName)
-	return get[APIResponseBool](a.base, "setChatStickerSet", vals)
+	return res, a.client.get(a.base, "setChatStickerSet", vals, &res)
 }
 
 // DeleteChatStickerSet is used to delete a group sticker set for a supergroup.
@@ -697,7 +708,7 @@ func (a API) DeleteChatStickerSet(chatID int64) (res APIResponseBool, err error)
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "deleteChatStickerSet", vals)
+	return res, a.client.get(a.base, "deleteChatStickerSet", vals, &res)
 }
 
 // CreateForumTopic is used to create a topic in a forum supergroup chat.
@@ -707,7 +718,7 @@ func (a API) CreateForumTopic(chatID int64, name string, opts *CreateTopicOption
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("name", name)
-	return get[APIResponseForumTopic](a.base, "createForumTopic", addValues(vals, opts))
+	return res, a.client.get(a.base, "createForumTopic", addValues(vals, opts), &res)
 }
 
 // EditForumTopic is used to edit name and icon of a topic in a forum supergroup chat.
@@ -717,7 +728,7 @@ func (a API) EditForumTopic(chatID, messageThreadID int64, opts *EditTopicOption
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_thread_id", itoa(messageThreadID))
-	return get[APIResponseBool](a.base, "editForumTopic", addValues(vals, opts))
+	return res, a.client.get(a.base, "editForumTopic", addValues(vals, opts), &res)
 }
 
 // CloseForumTopic is used to close an open topic in a forum supergroup chat.
@@ -727,7 +738,7 @@ func (a API) CloseForumTopic(chatID, messageThreadID int64) (res APIResponseBool
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_thread_id", itoa(messageThreadID))
-	return get[APIResponseBool](a.base, "closeForumTopic", vals)
+	return res, a.client.get(a.base, "closeForumTopic", vals, &res)
 }
 
 // ReopenForumTopic is used to reopen a closed topic in a forum supergroup chat.
@@ -737,7 +748,7 @@ func (a API) ReopenForumTopic(chatID, messageThreadID int64) (res APIResponseBoo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_thread_id", itoa(messageThreadID))
-	return get[APIResponseBool](a.base, "reopenForumTopic", vals)
+	return res, a.client.get(a.base, "reopenForumTopic", vals, &res)
 }
 
 // DeleteForumTopic is used to delete a forum topic along with all its messages in a forum supergroup chat.
@@ -747,7 +758,7 @@ func (a API) DeleteForumTopic(chatID, messageThreadID int64) (res APIResponseBoo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_thread_id", itoa(messageThreadID))
-	return get[APIResponseBool](a.base, "deleteForumTopic", vals)
+	return res, a.client.get(a.base, "deleteForumTopic", vals, &res)
 }
 
 // UnpinAllForumTopicMessages is used to clear the list of pinned messages in a forum topic.
@@ -757,7 +768,7 @@ func (a API) UnpinAllForumTopicMessages(chatID, messageThreadID int64) (res APIR
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_thread_id", itoa(messageThreadID))
-	return get[APIResponseBool](a.base, "unpinAllForumTopicMessages", vals)
+	return res, a.client.get(a.base, "unpinAllForumTopicMessages", vals, &res)
 }
 
 // EditGeneralForumTopic is used to edit the name of the 'General' topic in a forum supergroup chat.
@@ -767,7 +778,7 @@ func (a API) EditGeneralForumTopic(chatID int64, name string) (res APIResponseBo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("name", name)
-	return get[APIResponseBool](a.base, "editGeneralForumTopic", vals)
+	return res, a.client.get(a.base, "editGeneralForumTopic", vals, &res)
 }
 
 // CloseGeneralForumTopic is used to close an open 'General' topic in a forum supergroup chat.
@@ -776,7 +787,7 @@ func (a API) CloseGeneralForumTopic(chatID int64) (res APIResponseBool, err erro
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "closeGeneralForumTopic", vals)
+	return res, a.client.get(a.base, "closeGeneralForumTopic", vals, &res)
 }
 
 // ReopenGeneralForumTopic is used to reopen a closed 'General' topic in a forum supergroup chat.
@@ -786,7 +797,7 @@ func (a API) ReopenGeneralForumTopic(chatID int64) (res APIResponseBool, err err
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "reopenGeneralForumTopic", vals)
+	return res, a.client.get(a.base, "reopenGeneralForumTopic", vals, &res)
 }
 
 // HideGeneralForumTopic is used to hide the 'General' topic in a forum supergroup chat.
@@ -796,7 +807,7 @@ func (a API) HideGeneralForumTopic(chatID int64) (res APIResponseBool, err error
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "hideGeneralForumTopic", vals)
+	return res, a.client.get(a.base, "hideGeneralForumTopic", vals, &res)
 }
 
 // UnhideGeneralForumTopic is used to unhide the 'General' topic in a forum supergroup chat.
@@ -805,7 +816,7 @@ func (a API) UnhideGeneralForumTopic(chatID int64) (res APIResponseBool, err err
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "unhideGeneralForumTopic", vals)
+	return res, a.client.get(a.base, "unhideGeneralForumTopic", vals, &res)
 }
 
 // UnpinAllGeneralForumTopicMessages is used to clear the list of pinned messages in a General forum topic.
@@ -814,7 +825,7 @@ func (a API) UnpinAllGeneralForumTopicMessages(chatID int64) (res APIResponseBoo
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
-	return get[APIResponseBool](a.base, "unpinAllGeneralForumTopicMessages", vals)
+	return res, a.client.get(a.base, "unpinAllGeneralForumTopicMessages", vals, &res)
 }
 
 // AnswerCallbackQuery is used to send answers to callback queries sent from inline keyboards.
@@ -823,7 +834,7 @@ func (a API) AnswerCallbackQuery(callbackID string, opts *CallbackQueryOptions) 
 	var vals = make(url.Values)
 
 	vals.Set("callback_query_id", callbackID)
-	return get[APIResponseBool](a.base, "answerCallbackQuery", addValues(vals, opts))
+	return res, a.client.get(a.base, "answerCallbackQuery", addValues(vals, opts), &res)
 }
 
 // GetUserChatBoosts is used to get the list of boosts added to a chat by a user.
@@ -833,7 +844,15 @@ func (a API) GetUserChatBoosts(chatID, userID int64) (res APIResponseUserChatBoo
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("user_id", itoa(userID))
-	return get[APIResponseUserChatBoosts](a.base, "getUserChatBoosts", vals)
+	return res, a.client.get(a.base, "getUserChatBoosts", vals, &res)
+}
+
+// GetBusinessConnection is used to get information about the connection of the bot with a business account.
+func (a API) GetBusinessConnection(business_connection_id string) (res APIResponseBusinessConnection, err error) {
+	var vals = make(url.Values)
+
+	vals.Set("business_connection_id", business_connection_id)
+	return res, a.client.get(a.base, "getBusinessConnection", vals, &res)
 }
 
 // SetMyCommands is used to change the list of the bot's commands for the given scope and user language.
@@ -842,17 +861,17 @@ func (a API) SetMyCommands(opts *CommandOptions, commands ...BotCommand) (res AP
 
 	jsn, _ := json.Marshal(commands)
 	vals.Set("commands", string(jsn))
-	return get[APIResponseBool](a.base, "setMyCommands", addValues(vals, opts))
+	return res, a.client.get(a.base, "setMyCommands", addValues(vals, opts), &res)
 }
 
 // DeleteMyCommands is used to delete the list of the bot's commands for the given scope and user language.
 func (a API) DeleteMyCommands(opts *CommandOptions) (res APIResponseBool, err error) {
-	return get[APIResponseBool](a.base, "deleteMyCommands", urlValues(opts))
+	return res, a.client.get(a.base, "deleteMyCommands", urlValues(opts), &res)
 }
 
 // GetMyCommands is used to get the current list of the bot's commands for the given scope and user language.
 func (a API) GetMyCommands(opts *CommandOptions) (res APIResponseCommands, err error) {
-	return get[APIResponseCommands](a.base, "getMyCommands", urlValues(opts))
+	return res, a.client.get(a.base, "getMyCommands", urlValues(opts), &res)
 }
 
 // SetMyName is used to change the bot's name.
@@ -861,7 +880,7 @@ func (a API) SetMyName(name, languageCode string) (res APIResponseBool, err erro
 
 	vals.Set("name", name)
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBool](a.base, "setMyName", vals)
+	return res, a.client.get(a.base, "setMyName", vals, &res)
 }
 
 // GetMyName is used to get the current bot name for the given user language.
@@ -869,7 +888,7 @@ func (a API) GetMyName(languageCode string) (res APIResponseBotName, err error) 
 	var vals = make(url.Values)
 
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBotName](a.base, "getMyName", vals)
+	return res, a.client.get(a.base, "getMyName", vals, &res)
 }
 
 // SetMyDescription is used to to change the bot's description, which is shown in the chat with the bot if the chat is empty.
@@ -878,7 +897,7 @@ func (a API) SetMyDescription(description, languageCode string) (res APIResponse
 
 	vals.Set("description", description)
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBool](a.base, "setMyDescription", vals)
+	return res, a.client.get(a.base, "setMyDescription", vals, &res)
 }
 
 // GetMyDescription is used to get the current bot description for the given user language.
@@ -886,7 +905,7 @@ func (a API) GetMyDescription(languageCode string) (res APIResponseBotDescriptio
 	var vals = make(url.Values)
 
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBotDescription](a.base, "getMyDescription", vals)
+	return res, a.client.get(a.base, "getMyDescription", vals, &res)
 }
 
 // SetMyShortDescription is used to to change the bot's short description,
@@ -896,7 +915,7 @@ func (a API) SetMyShortDescription(shortDescription, languageCode string) (res A
 
 	vals.Set("short_description", shortDescription)
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBool](a.base, "setMyShortDescription", vals)
+	return res, a.client.get(a.base, "setMyShortDescription", vals, &res)
 }
 
 // GetMyShortDescription is used to get the current bot short description for the given user language.
@@ -904,7 +923,7 @@ func (a API) GetMyShortDescription(languageCode string) (res APIResponseBotShort
 	var vals = make(url.Values)
 
 	vals.Set("language_code", languageCode)
-	return get[APIResponseBotShortDescription](a.base, "getMyDescription", vals)
+	return res, a.client.get(a.base, "getMyDescription", vals, &res)
 }
 
 // EditMessageText is used to edit text and game messages.
@@ -912,12 +931,12 @@ func (a API) EditMessageText(text string, msg MessageIDOptions, opts *MessageTex
 	var vals = make(url.Values)
 
 	vals.Set("text", text)
-	return get[APIResponseMessage](a.base, "editMessageText", addValues(addValues(vals, msg), opts))
+	return res, a.client.get(a.base, "editMessageText", addValues(addValues(vals, msg), opts), &res)
 }
 
 // EditMessageCaption is used to edit captions of messages.
 func (a API) EditMessageCaption(msg MessageIDOptions, opts *MessageCaptionOptions) (res APIResponseMessage, err error) {
-	return get[APIResponseMessage](a.base, "editMessageCaption", addValues(urlValues(msg), opts))
+	return res, a.client.get(a.base, "editMessageCaption", addValues(urlValues(msg), opts), &res)
 }
 
 // EditMessageMedia is used to edit animation, audio, document, photo or video messages.
@@ -925,22 +944,22 @@ func (a API) EditMessageCaption(msg MessageIDOptions, opts *MessageCaptionOption
 // only to a document for document albums and to a photo or a video otherwise.
 // When an inline message is edited, a new file can't be uploaded.
 // Use a previously uploaded file via its file_id or specify a URL.
-func (a API) EditMessageMedia(msg MessageIDOptions, media InputMedia, opts *MessageReplyMarkup) (res APIResponseMessage, err error) {
-	return postMedia[APIResponseMessage](a.base, "editMessageMedia", true, addValues(urlValues(msg), opts), media)
+func (a API) EditMessageMedia(msg MessageIDOptions, media InputMedia, opts *MessageMediaOptions) (res APIResponseMessage, err error) {
+	return res, a.client.postMedia(a.base, "editMessageMedia", true, addValues(urlValues(msg), opts), &res, media)
 }
 
 // EditMessageReplyMarkup is used to edit only the reply markup of messages.
-func (a API) EditMessageReplyMarkup(msg MessageIDOptions, opts *MessageReplyMarkup) (res APIResponseMessage, err error) {
-	return get[APIResponseMessage](a.base, "editMessageReplyMarkup", addValues(urlValues(msg), opts))
+func (a API) EditMessageReplyMarkup(msg MessageIDOptions, opts *MessageReplyMarkupOptions) (res APIResponseMessage, err error) {
+	return res, a.client.get(a.base, "editMessageReplyMarkup", addValues(urlValues(msg), opts), &res)
 }
 
 // StopPoll is used to stop a poll which was sent by the bot.
-func (a API) StopPoll(chatID int64, messageID int, opts *MessageReplyMarkup) (res APIResponsePoll, err error) {
+func (a API) StopPoll(chatID int64, messageID int, opts *StopPollOptions) (res APIResponsePoll, err error) {
 	var vals = make(url.Values)
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponsePoll](a.base, "stopPoll", addValues(vals, opts))
+	return res, a.client.get(a.base, "stopPoll", addValues(vals, opts), &res)
 }
 
 // DeleteMessage is used to delete a message, including service messages, with the following limitations:
@@ -956,7 +975,7 @@ func (a API) DeleteMessage(chatID int64, messageID int) (res APIResponseBase, er
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_id", itoa(int64(messageID)))
-	return get[APIResponseBase](a.base, "deleteMessage", vals)
+	return res, a.client.get(a.base, "deleteMessage", vals, &res)
 }
 
 // DeleteMessages is used to delete multiple messages simultaneously.
@@ -971,5 +990,5 @@ func (a API) DeleteMessages(chatID int64, messageIDs []int) (res APIResponseBool
 
 	vals.Set("chat_id", itoa(chatID))
 	vals.Set("message_ids", string(msgIDs))
-	return get[APIResponseBool](a.base, "deleteMessages", vals)
+	return res, a.client.get(a.base, "deleteMessages", vals, &res)
 }
