@@ -153,6 +153,11 @@ func telegramMsgParser(msg *echotron.Update) {
 		}
 	}
 
+	// Если сообщение было зацензурено, то дальше его обрабатывать не надо.
+	if Censor(msg) {
+		return
+	}
+
 	var (
 		rmsg         rMsg
 		errorOccured bool
@@ -553,154 +558,113 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 // Censor парсит сообщения в поисках непотребных данных и если он их находит, то сообщение удаляется.
 // Непотребными могут быть аудиосообщения, аудиофайлы, видеосообщения, сообщения от имени других каналов итп.
 // Это могут настроить админы чятика через команду !admin censor.
-// TODO: Реализовать censor-а.
 func Censor(msg *echotron.Update) bool {
 	result := false
 
-	if GetSetting(fmt.Sprintf("%d", msg.ChatID()), "VoiceMsg") == "1" {
+	switch {
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "VoiceMsg") == "1":
 		result = true
 
-		if res, err := tg.DeleteMessage(msg.ChatID(), msg.Message.ID); err != nil {
-			chat := ConstructFullChatName(msg.Message.SenderChat)
-			user := ConstructFullUserName(msg.Message.From)
+		// Предполагаем, что у voice-ов здесь всегда не ноль.
+		if msg.Message.Voice.Duration != 0 {
+			delMsg(msg)
 
-			log.Errorf("Unable to delete message %d in chat %s from %s via telegram api: %s", msg.Message.ID, chat, user, err)
-		} else if !res.Ok {
-			chat := ConstructFullChatName(msg.Message.SenderChat)
-			user := ConstructFullUserName(msg.Message.From)
+			result = true
+		}
 
-			log.Errorf("Unable to delete message %d in chat %s from %s via telegram api: %s", msg.ID, chat, user, res.Description)
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "AudioMsg") == "1":
+		// Предполагаем, что у аудио здесь всегда не ноль.
+		if msg.Message.Audio.Duration != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "PhotoMsg") == "1":
+		// Обычное сообщение не содержит фоток.
+		if len(msg.Message.Photo) != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "VideoMsg") == "1":
+		// Предполагаем, что у видео здесь всегда не ноль.
+		if msg.Message.Video.Duration != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "VideoNoteMsg") == "1":
+		// Предполагаем, что у видео-заметки здесь всегда не ноль.
+		if msg.Message.VideoNote.Duration != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "AnimationMsg") == "1":
+		// Предполагаем, что у анимации здесь всегда не ноль.
+		if msg.Message.Animation.Duration != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "StickerMsg") == "1":
+		// Предполагаем, что FileID не пустое только у стикера.
+		if msg.Message.Sticker.FileID != "" {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "DiceMsg") == "1":
+		// Предполагаем, что Value > 0 только у дайса.
+		if msg.Message.Dice.Value != 0 {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "GameMsg") == "1":
+		// Предполагаем, что title только у game-а.
+		if msg.Message.Game.Title != "" {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "PollMsg") == "1":
+		// Предполагаем, что title только у game-а.
+		if msg.Message.Poll.Question != "" {
+			delMsg(msg)
+
+			result = true
+		}
+
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "DocumentMsg") == "1":
+		// Предполагаем, что FileID есть только у document-а.
+		if msg.Message.Document.FileID != "" {
+			delMsg(msg)
+
+			result = true
+		}
+
+	// Некоторые рекламные товарищи пытаются срать своими каналами в чятик это тоже можно зацензурить ботом и это
+	// пидорство он будет удалять asap.
+	// 136817688 - это специальный id пользователя, который принимает облик канала, на него можно нажать и попасть
+	//             на рекламируемый канал.
+	case GetSetting(fmt.Sprintf("%d", msg.ChatID()), "ChanMsg") == "1":
+		if msg.Message.From.ID == 136817688 {
+			delMsg(msg)
+
+			result = true
 		}
 	}
 
 	return result
-}
-
-// ConstructFullUserName выковыривает из сообщения полный username, в формате @username FirstName LastName (id).
-func ConstructFullUserName(u *echotron.User) string {
-	user := fmt.Sprintf("(%d)", u.ID)
-
-	if u.LastName != "" {
-		user = fmt.Sprintf("%s %s", u.LastName, user)
-	}
-
-	if u.FirstName != "" {
-		user = fmt.Sprintf("%s %s", u.FirstName, user)
-	}
-
-	if u.Username != "" {
-		user = fmt.Sprintf("@%s %s", u.Username, user)
-	}
-
-	return user
-}
-
-// ConstructFullChatName выковыривает из сообщения полный username чата, в формате @username FirstName LastName (id).
-func ConstructFullChatName(c *echotron.Chat) string {
-	chat := fmt.Sprintf("(%d)", c.ID)
-
-	if c.LastName != "" {
-		chat = fmt.Sprintf("%s %s", c.LastName, chat)
-	}
-
-	if c.FirstName != "" {
-		chat = fmt.Sprintf("%s %s", c.FirstName, chat)
-	}
-
-	if c.Username != "" {
-		chat = fmt.Sprintf("@%s %s", c.Username, chat)
-	}
-
-	return chat
-}
-
-// ConstructPartialUserUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
-// такового нет, то возвращает ID.
-func ConstructPartialUserUsername(u *echotron.User) string {
-	switch {
-	case u.Username != "":
-		return fmt.Sprintf("@%s", u.Username)
-
-	case u.FirstName != "" && u.LastName != "":
-		return fmt.Sprintf("%s %s", u.FirstName, u.LastName)
-
-	case u.FirstName != "":
-		return u.FirstName
-
-	case u.LastName != "":
-		return u.LastName
-
-	default:
-		return fmt.Sprintf("%d", u.ID)
-	}
-}
-
-// ConstructPartialUserUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
-// такового нет, то возвращает ID.
-func ConstructPartialChatUsername(c *echotron.Chat) string {
-	switch {
-	case c.Username != "":
-		return fmt.Sprintf("@%s", c.Username)
-
-	case c.FirstName != "" && c.LastName != "":
-		return fmt.Sprintf("%s %s", c.FirstName, c.LastName)
-
-	case c.FirstName != "":
-		return c.FirstName
-
-	case c.LastName != "":
-		return c.LastName
-
-	default:
-		return fmt.Sprintf("%d", c.ID)
-	}
-}
-
-// ConstructUserFirstLastName Пытается найти и вытащить first name и last name пользователя, если не получается, то
-// вначале пытается фоллбэчиться на first name, потом на last name, потом на username.
-func ConstructUserFirstLastName(u *echotron.User) string {
-	var user string
-
-	switch {
-	case u.FirstName != "" && u.LastName != "":
-		user = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
-	case u.FirstName != "":
-		user = u.FirstName
-	case u.LastName != "":
-		user = u.LastName
-	case u.Username != "":
-		user = fmt.Sprintf("@%s", u.Username)
-	default:
-		user = fmt.Sprintf("%d", u.ID)
-	}
-
-	return user
-}
-
-// ConstructTelegramHighlightName генерирует имя пользователя, которое триггерит на стороне клиент ивент меншена
-// определённого пользователя.
-func ConstructTelegramHighlightName(u *echotron.User) string {
-	var (
-		username string
-		link     string
-	)
-
-	link = fmt.Sprintf("tg://user?id=%d", u.ID)
-
-	// Тут мы предполагаем, что как минимум либо firstname либо lastname либо username всегда есть. По сути так оно и
-	// должно быть.
-	switch {
-	case u.FirstName != "" && u.LastName != "":
-		username = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
-	case u.FirstName != "":
-		username = u.FirstName
-	case u.LastName != "":
-		username = u.LastName
-	default:
-		username = u.Username
-	}
-
-	return fmt.Sprintf("[%s](%s)", username, link)
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

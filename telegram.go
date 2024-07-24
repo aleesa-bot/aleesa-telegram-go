@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/NicoNex/echotron/v3"
+	log "github.com/sirupsen/logrus"
 )
 
 // telega основная горутинка, реализующая бота.
@@ -11,4 +14,145 @@ func telega(c myConfig) {
 	for u := range echotron.PollingUpdates(c.Telegram.Token) {
 		telegramMsgParser(u)
 	}
+}
+
+func delMsg(msg *echotron.Update) {
+	if res, err := tg.DeleteMessage(msg.ChatID(), msg.Message.ID); err != nil {
+		chat := ConstructFullChatName(msg.Message.SenderChat)
+		user := ConstructFullUserName(msg.Message.From)
+
+		log.Errorf("Unable to delete message %d in chat %s from %s via telegram api: %s", msg.Message.ID, chat, user, err)
+	} else if !res.Ok {
+		chat := ConstructFullChatName(msg.Message.SenderChat)
+		user := ConstructFullUserName(msg.Message.From)
+
+		log.Errorf("Unable to delete message %d in chat %s from %s via telegram api: %s", msg.ID, chat, user, res.Description)
+	}
+}
+
+// ConstructFullUserName выковыривает из сообщения полный username, в формате @username FirstName LastName (id).
+func ConstructFullUserName(u *echotron.User) string {
+	user := fmt.Sprintf("(%d)", u.ID)
+
+	if u.LastName != "" {
+		user = fmt.Sprintf("%s %s", u.LastName, user)
+	}
+
+	if u.FirstName != "" {
+		user = fmt.Sprintf("%s %s", u.FirstName, user)
+	}
+
+	if u.Username != "" {
+		user = fmt.Sprintf("@%s %s", u.Username, user)
+	}
+
+	return user
+}
+
+// ConstructFullChatName выковыривает из сообщения полный username чата, в формате @username FirstName LastName (id).
+func ConstructFullChatName(c *echotron.Chat) string {
+	chat := fmt.Sprintf("(%d)", c.ID)
+
+	if c.LastName != "" {
+		chat = fmt.Sprintf("%s %s", c.LastName, chat)
+	}
+
+	if c.FirstName != "" {
+		chat = fmt.Sprintf("%s %s", c.FirstName, chat)
+	}
+
+	if c.Username != "" {
+		chat = fmt.Sprintf("@%s %s", c.Username, chat)
+	}
+
+	return chat
+}
+
+// ConstructPartialUserUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
+// такового нет, то возвращает ID.
+func ConstructPartialUserUsername(u *echotron.User) string {
+	switch {
+	case u.Username != "":
+		return fmt.Sprintf("@%s", u.Username)
+
+	case u.FirstName != "" && u.LastName != "":
+		return fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+
+	case u.FirstName != "":
+		return u.FirstName
+
+	case u.LastName != "":
+		return u.LastName
+
+	default:
+		return fmt.Sprintf("%d", u.ID)
+	}
+}
+
+// ConstructPartialUserUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
+// такового нет, то возвращает ID.
+func ConstructPartialChatUsername(c *echotron.Chat) string {
+	switch {
+	case c.Username != "":
+		return fmt.Sprintf("@%s", c.Username)
+
+	case c.FirstName != "" && c.LastName != "":
+		return fmt.Sprintf("%s %s", c.FirstName, c.LastName)
+
+	case c.FirstName != "":
+		return c.FirstName
+
+	case c.LastName != "":
+		return c.LastName
+
+	default:
+		return fmt.Sprintf("%d", c.ID)
+	}
+}
+
+// ConstructUserFirstLastName Пытается найти и вытащить first name и last name пользователя, если не получается, то
+// вначале пытается фоллбэчиться на first name, потом на last name, потом на username.
+func ConstructUserFirstLastName(u *echotron.User) string {
+	var user string
+
+	switch {
+	case u.FirstName != "" && u.LastName != "":
+		user = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+	case u.FirstName != "":
+		user = u.FirstName
+	case u.LastName != "":
+		user = u.LastName
+	case u.Username != "":
+		user = fmt.Sprintf("@%s", u.Username)
+	default:
+		user = fmt.Sprintf("%d", u.ID)
+	}
+
+	return user
+}
+
+// ConstructTelegramHighlightName генерирует имя пользователя, которое триггерит на стороне клиент ивент меншена
+// определённого пользователя.
+func ConstructTelegramHighlightName(u *echotron.User) string {
+	var (
+		username string
+		link     string
+	)
+
+	link = fmt.Sprintf("tg://user?id=%d", u.ID)
+
+	// Тут мы предполагаем, что как минимум либо firstname либо lastname либо username всегда есть. По сути так оно и
+	// должно быть.
+	switch {
+	case u.FirstName != "" && u.LastName != "":
+		username = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+	case u.FirstName != "":
+		username = u.FirstName
+	case u.LastName != "":
+		username = u.LastName
+	default:
+		username = u.Username
+	}
+
+	return fmt.Sprintf("[%s](%s)", username, link)
 }
