@@ -44,7 +44,7 @@ func FetchV(db *pebble.DB, key string) (string, error) {
 	return valueString, err
 }
 
-// getSetting достаёт настройку из БД с настройками.
+// GetSetting достаёт настройку из БД с настройками.
 func GetSetting(chatID string, setting string) string {
 	var err error
 
@@ -71,13 +71,14 @@ func GetSetting(chatID string, setting string) string {
 
 	// Если из базы ничего не вынулось, по каким-то причинам, то просто вернём пустую строку.
 	if err != nil {
-		if errors.Is(err, pebble.ErrNotFound) {
+		switch {
+		case errors.Is(err, pebble.ErrNotFound):
 			log.Debugf("Unable to get value for %s: no record found in db %s", setting, database)
-		} else if errors.Is(err, fs.ErrNotExist) {
+		case errors.Is(err, fs.ErrNotExist):
 			log.Debugf("Unable to get value for %s: db dir %s does not exist", setting, database)
-		} else if errors.Is(err, oserror.ErrNotExist) {
+		case errors.Is(err, oserror.ErrNotExist):
 			log.Debugf("Unable to get value for %s: db dir %s does not exist", setting, database)
-		} else {
+		default:
 			log.Errorf("Unable to get value for %s in db dir %s: %s", setting, database, err)
 		}
 
@@ -87,8 +88,8 @@ func GetSetting(chatID string, setting string) string {
 	return value
 }
 
-// saveSetting сохраняет настройку в БД с настройками.
-func GaveSetting(chatID string, setting string, value string) error {
+// SaveSetting сохраняет настройку в БД с настройками.
+func SaveSetting(chatID string, setting string, value string) error {
 	var (
 		chatHash = sha256.Sum256([]byte(chatID))
 		database = fmt.Sprintf("settings_db/%x", chatHash)
