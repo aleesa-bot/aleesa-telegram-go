@@ -13,8 +13,10 @@ import (
 
 // StoreKV сохраняет в указанной бд ключ и значение.
 func StoreKV(db *pebble.DB, key string, value string) error {
-	var kArray = []byte(key)
-	var vArray = []byte(value)
+	var (
+		kArray = []byte(key)
+		vArray = []byte(value)
+	)
 
 	err := db.Set(kArray, vArray, pebble.Sync)
 
@@ -23,10 +25,12 @@ func StoreKV(db *pebble.DB, key string, value string) error {
 
 // FetchV достаёт значение по ключу.
 func FetchV(db *pebble.DB, key string) (string, error) {
-	var kArray = []byte(key)
+	var (
+		kArray = []byte(key)
 
-	var vArray []byte
-	var valueString = ""
+		vArray      []byte
+		valueString = ""
+	)
 
 	vArray, closer, err := db.Get(kArray)
 
@@ -58,6 +62,7 @@ func GetSetting(chatID string, setting string) string {
 
 		if err != nil {
 			log.Errorf("Unable to open settings db, %s: %s\n", database, err)
+
 			return ""
 		}
 	}
@@ -84,9 +89,11 @@ func GetSetting(chatID string, setting string) string {
 
 // saveSetting сохраняет настройку в БД с настройками.
 func GaveSetting(chatID string, setting string, value string) error {
-	var chatHash = sha256.Sum256([]byte(chatID))
-	var database = fmt.Sprintf("settings_db/%x", chatHash)
-	var err error
+	var (
+		chatHash = sha256.Sum256([]byte(chatID))
+		database = fmt.Sprintf("settings_db/%x", chatHash)
+		err      error
+	)
 
 	// Если БД не открыта, откроем её.
 	if _, ok := settingsDB[database]; !ok {
@@ -100,6 +107,7 @@ func GaveSetting(chatID string, setting string, value string) error {
 
 		if err != nil {
 			log.Errorf("Unable to open settings db, %s: %s\n", database, err)
+
 			return err
 		}
 	}

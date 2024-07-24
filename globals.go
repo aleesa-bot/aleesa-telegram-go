@@ -22,7 +22,7 @@ var subscriber *redis.PubSub
 // Main context.
 var ctx = context.Background()
 
-// Ставится в true, если мы получили сигнал на выключение
+// Ставится в true, если мы получили сигнал на выключение.
 var shutdown = false
 
 // Канал, в который приходят уведомления для хэндлера сигналов от траппера сигналов.

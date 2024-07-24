@@ -20,7 +20,7 @@ func parseConfig(path string) (myConfig, error) {
 
 	// Конфиг-файл длинноват для конфига, попробуем следующего кандидата.
 	if fileInfo.Size() > 65535 {
-		err := fmt.Errorf("Config file %s is too long for config, skipping", path)
+		err := fmt.Errorf("config file %s is too long for config, skipping", path)
 
 		return myConfig{}, err
 	}
@@ -70,13 +70,13 @@ func parseConfig(path string) (myConfig, error) {
 	}
 
 	if sampleConfig.Redis.Channel == "" {
-		err := fmt.Errorf("Channel field in config file %s must be set", path)
+		err := fmt.Errorf("channel field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
 
 	if sampleConfig.Redis.MyChannel == "" {
-		err := fmt.Errorf("My_channel field in config file %s must be set", path)
+		err := fmt.Errorf("my_channel field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
@@ -92,7 +92,7 @@ func parseConfig(path string) (myConfig, error) {
 	// sampleConfig.Log = "" if not set
 
 	if sampleConfig.Csign == "" {
-		err := fmt.Errorf("Csign field in config file %s must be set", path)
+		err := fmt.Errorf("csign field in config file %s must be set", path)
 
 		return myConfig{}, err
 	}
@@ -102,7 +102,7 @@ func parseConfig(path string) (myConfig, error) {
 	}
 
 	if sampleConfig.DataDir == "" {
-		return myConfig{}, fmt.Errorf("Data_dir field in config file %s must be set", path)
+		return myConfig{}, fmt.Errorf("data_dir field in config file %s must be set", path)
 	}
 
 	return sampleConfig, err

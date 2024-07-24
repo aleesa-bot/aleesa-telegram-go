@@ -237,15 +237,20 @@ func telegramMsgParser(msg *echotron.Update) {
 
 		// TODO: если человек ответил на авто-приветствие, это надо обнаруживать и пропускать.
 
-		// Если фраза является командой - засылаем её в парсер команд.
-		if msg.Message.Text[0:len(config.Csign)] == config.Csign {
-			if err := cmdParser(msg.Message.Text); err != nil {
-				log.Errorf(
-					"Unable to parse message from telegram api as a command. Message was: %s, error: %s",
-					msg.Message.Text,
-					err,
-				)
-			}
+		// Pасылаем сообщение в парсер команд.
+		res, err := cmdParser(me, msg)
+
+		if err != nil {
+			log.Errorf(
+				"Unable to parse message from telegram api as a command. Message was: %s, error: %s",
+				msg.Message.Text,
+				err,
+			)
+		}
+
+		// Если сообщение - команда, то на этом наши приключения закончились.
+		if res {
+			return
 		}
 
 		// Здесь же, если фраза обращена к боту (ник или имя), выставляем флажок, что надо ответить
@@ -354,10 +359,130 @@ func telegramMsgParser(msg *echotron.Update) {
 	} //nolint:wsl
 }
 
-func cmdParser(cmd string) error {
-	var err error
+// cmdParser разбирает сообщение как команду и засылает его в роутер, попутно обкладывая корректными значениями
+// параметров. Возвращает true если это была команда.
+func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) {
+	var (
+		err   error
+		smsg  sMsg
+		bingo bool
+	)
 
-	return err
+	smsg.From = "telegram"
+	smsg.Plugin = "telegram"
+	smsg.Chatid = fmt.Sprintf("%d", cmd.Message.Chat.ID)
+	smsg.Userid = fmt.Sprintf("%d", cmd.Message.From.ID)
+	smsg.Message = cmd.Message.Text
+	smsg.Misc.Answer = 1
+
+	// Тоже самое можно проставить выковырнув значение из cmd.Message.Chat.Type, где group/supergroup/channel - это
+	// public, а остальное - private, но по id проще/быстрее, хоть это и хак.
+	if cmd.Message.Chat.ID >= 0 {
+		smsg.Mode = "private"
+	} else {
+		smsg.Mode = "public"
+	}
+
+	smsg.Misc.Botnick = ConstructPartialUserUsername(me.Result)
+
+	// Предполагаем, что длина cmd.Message.Text всегда больше или равна длине config.Csign.
+	if cmd.Message.Text[0:len(config.Csign)] == config.Csign {
+		// Повторно проверяем, что текст является простой командой.
+
+		command := cmd.Message.Text[len(config.Csign):]
+
+		// TODO: поддержать команды ver version версия, help, admin и admin *.
+
+		// Команды в одно слово.
+		cmds := []string{
+			"ping", "пинг", "пинх", "pong", "понг", "понх", "coin", "монетка", "roll", "dice", "кости", "ver",
+			"version", "версия", "хэлп", "halp", "kde", "кде", "lat", "лат", "friday", "пятница", "proverb",
+			"пословица", "пословиться", "fortune", "фортунка", "f", "ф", "anek", "анек", "анекдот", "buni", "cat",
+			"кис", "drink", "праздник", "fox", "лис", "frog", "лягушка", "horse", "лошадь", "лошадка", "monkeyuser",
+			"owl", "сова", "сыч", "rabbit", "bunny", "кролик", "snail", "улитка", "tits", "boobs", "tities", "boobies",
+			"сиси", "сисечки", "butt", "booty", "ass", "попа", "попка", "xkcd", "dig", "копать", "fish", "fishing",
+			"рыба", "рыбка", "рыбалка", "karma", "карма", "fuck",
+		}
+
+		for _, c := range cmds {
+			if command == c {
+				bingo = true
+
+				break
+			}
+		}
+
+		// Не нашлось команды в одно слово. Поищем команды с одним аргументом.
+		if !bingo {
+			cmds = []string{
+				"w", "п", "weather", "погода", "погодка", "погадка", "karma", "карма",
+			}
+
+			for _, c := range cmds {
+				cRe := fmt.Sprintf("^%s ", c)
+				r := regexp.MustCompile(cRe)
+
+				if r.MatchString(command) {
+					bingo = true
+
+					break
+				}
+			}
+		}
+
+		// Что-то странное пришло. Залоггируем и ничего делать не будем. Просто свалим.
+		if !bingo {
+			log.Infof(
+				"Strange command from %s %s: %s",
+				ConstructFullChatName(&cmd.Message.Chat),
+				ConstructFullUserName(cmd.Message.From),
+				cmd.Message.Text,
+			)
+
+			return true, err
+		}
+
+		// Для некоторых команд надо подсвечивать имя пользователя в ответе.
+		cmds = []string{
+			"dig", "копать", "fish", "fishing", "рыба", "рыбка", "рыбалка",
+		}
+
+		for _, c := range cmds {
+			// В vscode возникает ошибка при использовании if-а.
+			switch {
+			case command == c:
+				smsg.Misc.Username = ConstructTelegramHighlightName(cmd.Message.From)
+				smsg.Misc.Msgformat = 1
+
+				break
+			}
+		}
+
+		// Если у нас супергруппа с тредами, надо проставить thread id.
+		if cmd.Message.Chat.Type == "supergroup" && cmd.Message.IsTopicMessage && cmd.Message.ThreadID != 0 {
+			smsg.ThreadID = fmt.Sprintf("%d", cmd.Message.ThreadID)
+		}
+
+		// Отправляем сообщение в редиску.
+		data, err := json.Marshal(smsg)
+
+		if err != nil {
+			log.Warnf("Unable to to serialize message for redis: %s", err)
+
+			return true, err
+		}
+
+		// Заталкиваем наш json в редиску.
+		if err := redisClient.Publish(ctx, config.Redis.Channel, data).Err(); err != nil {
+			log.Warnf("Unable to send data to redis channel %s: %s", config.Redis.Channel, err)
+		} else {
+			log.Debugf("Sent msg to redis channel %s: %s", config.Redis.Channel, string(data))
+		}
+
+		return true, err
+	}
+
+	return false, err
 }
 
 // Censor парсит сообщения в поисках непотребных данных и если он их находит, то сообщение удаляется.
@@ -386,7 +511,7 @@ func Censor(msg *echotron.Update) bool {
 	return result
 }
 
-// ConstructFullUserName выковыривает из сообщения полный username, в формате @username FirstName LastName (id)
+// ConstructFullUserName выковыривает из сообщения полный username, в формате @username FirstName LastName (id).
 func ConstructFullUserName(u *echotron.User) string {
 	user := fmt.Sprintf("(%d)", u.ID)
 
@@ -405,7 +530,7 @@ func ConstructFullUserName(u *echotron.User) string {
 	return user
 }
 
-// ConstructFullChatName выковыривает из сообщения полный username чата, в формате @username FirstName LastName (id)
+// ConstructFullChatName выковыривает из сообщения полный username чата, в формате @username FirstName LastName (id).
 func ConstructFullChatName(c *echotron.Chat) string {
 	chat := fmt.Sprintf("(%d)", c.ID)
 
@@ -485,6 +610,32 @@ func ConstructUserFirstLastName(u *echotron.User) string {
 	}
 
 	return user
+}
+
+// ConstructTelegramHighlightName генерирует имя пользователя, которое триггерит на стороне клиент ивент меншена
+// определённого пользователя.
+func ConstructTelegramHighlightName(u *echotron.User) string {
+	var (
+		username string
+		link     string
+	)
+
+	link = fmt.Sprintf("tg://user?id=%d", u.ID)
+
+	// Тут мы предполагаем, что как минимум либо firstname либо lastname либо username всегда есть. По сути так оно и
+	// должно быть.
+	switch {
+	case u.FirstName != "" && u.LastName != "":
+		username = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+	case u.FirstName != "":
+		username = u.FirstName
+	case u.LastName != "":
+		username = u.LastName
+	default:
+		username = u.Username
+	}
+
+	return fmt.Sprintf("[%s](%s)", username, link)
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
