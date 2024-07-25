@@ -32,3 +32,5 @@ var sigChan = make(chan os.Signal, 1)
 var settingsDB = make(map[string]*pebble.DB)
 
 var tg echotron.API
+
+/* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

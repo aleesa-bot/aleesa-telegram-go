@@ -64,3 +64,5 @@ type sMsg struct {
 		Username    string `json:"username"`
 	} `json:"misc"`
 }
+
+/* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
