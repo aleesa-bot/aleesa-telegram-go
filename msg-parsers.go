@@ -409,58 +409,13 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 		// Повторно проверяем, что текст является простой командой.
 		command := cmd.Message.Text[len(config.Csign):]
 
-		// TODO: поддержать команды admin и admin *.
-		if command == "помощь" || command == "help" {
-			help := "```\n"
-			help += fmt.Sprintf("%shelp | %sпомощь             - список команд", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sanek | %sанек | %sанекдот    - рандомный анекдот с anekdot.ru", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%sbuni                       - рандомный стрип hapi buni", config.Csign)
-			help += fmt.Sprintf("%sbunny | %srabbit | %sкролик  - кролик", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%scat | %sкис                 - кошечка", config.Csign, config.Csign)
-			help += fmt.Sprintf("%scoin | %sмонетка            - подбросить монетку - орёл или решка?", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sdig | %sкопать              - заняться археологией", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sdrink | %sпраздник          - какой сегодня праздник?", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfish | %sрыба | %sрыбка      - порыбачить", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfishing | %sрыбалка         - порыбачить", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sf | %sф                     - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfortune | %sфортунка        - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfox | %sлис                 - лисичка", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfriday | %sпятница          - а не пятница ли сегодня?", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sfrog | %sлягушка            - лягушка", config.Csign, config.Csign)
-			help += fmt.Sprintf("%shorse | %sлошадка           - лошадка", config.Csign, config.Csign)
-			help += fmt.Sprintf("%slat | %sлат                 - сгенерить фразу из крылатых латинских выражений", config.Csign, config.Csign)
-			help += fmt.Sprintf("%smonkeyuser                 - рандомный стрип MonkeyUser", config.Csign)
-			help += fmt.Sprintf("%sowl | %sсова | %sсыч         - сова", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%sproverb | %sпословица       - рандомная русская пословица", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sping | %sпинг               - попинговать бота", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sroll | %sdice | %sкости      - бросить кости", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%ssnail | %sулитка            - улитка", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sver | %sversion | %sверсия   - что-то про версию ПО", config.Csign, config.Csign, config.Csign)
-			help += fmt.Sprintf("%sw город | %sп город         - погода в указанном городе", config.Csign, config.Csign)
-			help += fmt.Sprintf("%sweather город              - погода в указанном городе", config.Csign)
-			help += fmt.Sprintf("%sпогода город               - погода в указанном городе", config.Csign)
-			help += fmt.Sprintf("%sпогодка город              - погода в указанном городе", config.Csign)
-			help += fmt.Sprintf("%sпогадка город              - погода в указанном городе", config.Csign)
-			help += fmt.Sprintf("%sxkcd                       - рандомный стрип с сайта xkcd.ru", config.Csign)
-			help += fmt.Sprintf("%skarma фраза | %sкарма фраза - посмотреть карму фразы", config.Csign, config.Csign)
-			help += "```\n"
-			help += "Но на самом деле я бот больше для общения, чем для исполнения команд.\n"
-			help += "Поговоришь со мной?"
+		switch {
+		case command == "помощь" || command == "help":
+			return Help(cmd)
 
-			var opts *echotron.MessageOptions
-
-			chatid := cmd.Message.Chat.ID
-
-			resp, err := tg.SendMessage(help, chatid, opts)
-
-			if err != nil || !resp.Ok {
-				// TODO: поддержать миграцию группы в супергруппу, поддержать вариант, когда бот замьючен.
-				// Красиво оформить ошибку, с полями итд, как tracedump, только ошибка.
-				// N.B. тут может быть сообщение о том, что группа превратилась в супергруппу, или что бот не имеет прав писать
-				// сообщения в чятик. Это надо бы отслеживать и хэндлить.
-				log.Errorf("Unable to send message to telegram api: %s", err)
-				log.Errorf("Response dump: %s", spew.Sdump(resp))
-			}
+		// Хэндлер команд admin и admin *.
+		case regexp.MustCompile("^(admin|админ)(.+)?$").MatchString(command):
+			return Admin(cmd)
 		}
 
 		// Команды в одно слово.
@@ -665,6 +620,498 @@ func Censor(msg *echotron.Update) bool {
 	}
 
 	return result
+}
+
+func Help(cmd *echotron.Update) (bool, error) {
+	help := "```\n"
+	help += fmt.Sprintf("%shelp | %sпомощь             - список команд", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sanek | %sанек | %sанекдот    - рандомный анекдот с anekdot.ru", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%sbuni                       - рандомный стрип hapi buni", config.Csign)
+	help += fmt.Sprintf("%sbunny | %srabbit | %sкролик  - кролик", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%scat | %sкис                 - кошечка", config.Csign, config.Csign)
+	help += fmt.Sprintf("%scoin | %sмонетка            - подбросить монетку - орёл или решка?", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sdig | %sкопать              - заняться археологией", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sdrink | %sпраздник          - какой сегодня праздник?", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfish | %sрыба | %sрыбка      - порыбачить", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfishing | %sрыбалка         - порыбачить", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sf | %sф                     - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfortune | %sфортунка        - рандомная фраза из сборника цитат fortune_mod", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfox | %sлис                 - лисичка", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfriday | %sпятница          - а не пятница ли сегодня?", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sfrog | %sлягушка            - лягушка", config.Csign, config.Csign)
+	help += fmt.Sprintf("%shorse | %sлошадка           - лошадка", config.Csign, config.Csign)
+	help += fmt.Sprintf("%slat | %sлат                 - сгенерить фразу из крылатых латинских выражений", config.Csign, config.Csign)
+	help += fmt.Sprintf("%smonkeyuser                 - рандомный стрип MonkeyUser", config.Csign)
+	help += fmt.Sprintf("%sowl | %sсова | %sсыч         - сова", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%sproverb | %sпословица       - рандомная русская пословица", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sping | %sпинг               - попинговать бота", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sroll | %sdice | %sкости      - бросить кости", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%ssnail | %sулитка            - улитка", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sver | %sversion | %sверсия   - что-то про версию ПО", config.Csign, config.Csign, config.Csign)
+	help += fmt.Sprintf("%sw город | %sп город         - погода в указанном городе", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sweather город              - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогода город               - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогодка город              - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогадка город              - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sxkcd                       - рандомный стрип с сайта xkcd.ru", config.Csign)
+	help += fmt.Sprintf("%skarma фраза | %sкарма фраза - посмотреть карму фразы", config.Csign, config.Csign)
+	help += "```\n"
+	help += "Но на самом деле я бот больше для общения, чем для исполнения команд.\n"
+	help += "Поговоришь со мной?"
+
+	resp, err := tg.SendMessage(
+		help,
+		cmd.Message.Chat.ID,
+		&echotron.MessageOptions{ParseMode: "MarkdownV2"},
+	)
+
+	if err != nil || !resp.Ok {
+		// TODO: поддержать миграцию группы в супергруппу, поддержать вариант, когда бот замьючен.
+		// Красиво оформить ошибку, с полями итд, как tracedump, только ошибка.
+		// N.B. тут может быть сообщение о том, что группа превратилась в супергруппу, или что бот не имеет прав писать
+		// сообщения в чятик. Это надо бы отслеживать и хэндлить.
+		return true, fmt.Errorf(
+			"unable to send message to telegram api: %w\nResponse dump: %s",
+			err,
+			spew.Sdump(resp),
+		)
+	}
+
+	return true, nil
+}
+
+// Admin парсит команды семейства admin. Возвращает true, если команда была опознана как admin.
+func Admin(msg *echotron.Update) (bool, error) {
+	var (
+		c      = msg.Message.Text[len(config.Csign):]
+		answer string
+	)
+
+	switch {
+	case c == "admin" || c == "админ":
+		answer = "```\n"
+		answer += fmt.Sprintf("%sadmin censor          - показать список состояния типов сообщений\n", config.Csign)
+		answer += fmt.Sprintf("%sадмин ценз            - показать список состояния типов сообщений\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin censor type #   - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n", config.Csign)
+		answer += fmt.Sprintf("%sадмин ценз тип #      - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin fortune         - показываем ли с утра фортунку для чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin фортунка        - показываем ли с утра фортунку для чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin fortune #       - где 1 - вкл, 0 - выкл фортунку с утра\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin фортунка #      - где 1 - вкл, 0 - выкл фортунку с утра\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin greet           - приветствуем ли новых участников чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin приветствие     - приветствуем ли новых участников чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin greet #         - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin приветствие #   - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin oboobs #        - где 1 - вкл, 0 - выкл плагина oboobs\n", config.Csign)
+		answer += fmt.Sprintf(
+			"%sadmin oboobs          - показываем ли сисечки по просьбе участников чата (команды %stits, %stities, %sboobs, %sboobies, %sсиси, %sсисечки)\n",
+			config.Csign, config.Csign, config.Csign, config.Csign, config.Csign, config.Csign, config.Csign,
+		)
+		answer += fmt.Sprintf("%sadmin obutts #        - где 1 - вкл, 0 - выкл плагина obutts\n", config.Csign)
+		answer += fmt.Sprintf(
+			"%sadmin obutts          - показываем ли попки по просьбе участников чата (команды %sass, %sbutt, %sbooty, %sпопа, %sпопка)\n",
+			config.Csign, config.Csign, config.Csign, config.Csign, config.Csign, config.Csign,
+		)
+		answer += fmt.Sprintf("%sadmin chan_msg        - оставляем ли сообщения присланные от имени (других) каналов\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin chan_msg #      - где 1 - оставляем, 0 - удаляем\n", config.Csign)
+		answer += fmt.Sprintf(
+			"%sadmin ban userid sec  - выдаём ban указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n",
+			config.Csign,
+		)
+		answer += fmt.Sprintf(
+			"%sadmin mute userid sec - выдаём mute указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n",
+			config.Csign,
+		)
+		answer += fmt.Sprintf(
+			"%sadmin admin mute      - разрешено ли обычным админам мьютить участников чата через бота (если бот - админ), (создатель чата всегда может попросить бота-админа замьютить обычного участника чата)\n",
+			config.Csign,
+		)
+		answer += fmt.Sprintf("%sadmin admin mute #    - где 1 - разрешено, 0 - не разрешено\n", config.Csign)
+		answer += "\n"
+		answer += "Типы сообщений:\naudio voice photo video video_note animation sticker dice game poll document\n"
+		answer += "```"
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](censor|ценз)$").MatchString(c):
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg") == "1" {
+			answer += "Тип сообщения voice удаляется\n"
+		} else {
+			answer += "Тип сообщения voice не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg") == "1" {
+			answer += "Тип сообщения audio удаляется\n"
+		} else {
+			answer += "Тип сообщения audio не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg") == "1" {
+			answer += "Тип сообщения photo удаляется\n"
+		} else {
+			answer += "Тип сообщения photo не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg") == "1" {
+			answer += "Тип сообщения video удаляется\n"
+		} else {
+			answer += "Тип сообщения video не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg") == "1" {
+			answer += "Тип сообщения video_note удаляется\n"
+		} else {
+			answer += "Тип сообщения video_note не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg") == "1" {
+			answer += "Тип сообщения animation удаляется\n"
+		} else {
+			answer += "Тип сообщения animation не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg") == "1" {
+			answer += "Тип сообщения sticker удаляется\n"
+		} else {
+			answer += "Тип сообщения sticker не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DiceMsg") == "1" {
+			answer += "Тип сообщения dice удаляется\n"
+		} else {
+			answer += "Тип сообщения dice не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg") == "1" {
+			answer += "Тип сообщения game удаляется\n"
+		} else {
+			answer += "Тип сообщения game не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg") == "1" {
+			answer += "Тип сообщения poll удаляется\n"
+		} else {
+			answer += "Тип сообщения poll не удаляется\n"
+		}
+
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg") == "1" {
+			answer += "Тип сообщения document удаляется\n"
+		} else {
+			answer += "Тип сообщения document не удаляется\n"
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](censor|ценз)[[:space:]].+$").MatchString(c):
+		// Снова регулярка, это не оч эффективно, но зато просто.
+		// Выхватываем тип сообщения и согласно типу ставим настройку.
+		cmdArray := regexp.MustCompile("[[:space:]]").Split(c, 4)
+
+		switch cmdArray[2] {
+		case "voice":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с voice будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с voice будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "audio":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с audio будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с audio будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "photo":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с photo будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с photo будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "video":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с video будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с video будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "video_note":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с video_note будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с video_note будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "animation":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с animation будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с animation будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "sticker":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с sticker будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с sticker будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "dice":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DiceMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с dice будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "diceMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с dice будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "game":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с game будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с game будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "poll":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с poll будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с poll будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		case "document":
+			switch cmdArray[3] {
+			case "1":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg", "1"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с document будут оставаться"
+
+			case "0":
+				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg", "0"); err != nil {
+					return true, err
+				}
+
+				answer += "Теперь сообщения с document будут удаляться"
+
+			default:
+				answer += "Не понимаю о чём ты."
+			}
+
+		default:
+			answer += "Не понимаю о чём ты."
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](fortune|фортунка)$").MatchString(c):
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg") == "1" {
+			answer += "Фортунки с утра показываются"
+		} else {
+			answer += "Фортунки с утра не показываются"
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](fortune|фортунка)[[:space:]].*$").MatchString(c):
+		// Снова регулярка, это не оч эффективно, но зато просто.
+		cmdArray := regexp.MustCompile("[[:space:]]").Split(c, 3)
+
+		// TODO: На самом деле надо сохранять список чятиков, в которые надо отправлять сообщения. Из этой базы
+		//       мы не сможем вытащить список чятиков.
+		switch cmdArray[2] {
+		case "1":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg", "1"); err != nil {
+				return true, err
+			}
+
+			answer += "Теперь сообщения с фортункой будут отправляться с утра"
+
+		case "0":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg", "0"); err != nil {
+				return true, err
+			}
+
+			answer += "Теперь сообщения с фортункой не будут отправляться с утра"
+
+		default:
+			answer += "Не понимаю о чём ты."
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](greet|приветствие)$").MatchString(c):
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg") == "1" {
+			answer += "Приветствуем вновьприбывших участников чатика"
+		} else {
+			answer += "Не приветствуем вновьприбывших участников чатика"
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](greet|приветствие)[[:space:]].*$").MatchString(c):
+		// Снова регулярка, это не оч эффективно, но зато просто.
+		cmdArray := regexp.MustCompile("[[:space:]]").Split(c, 3)
+
+		// TODO: На самом деле надо сохранять список чятиков, в которые надо отправлять сообщения. Из этой базы
+		//       мы не сможем вытащить список чятиков.
+		switch cmdArray[2] {
+		case "1":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg", "1"); err != nil {
+				return true, err
+			}
+
+			answer += "Будем приветствовать вновьприбывших участников чата"
+
+		case "0":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg", "0"); err != nil {
+				return true, err
+			}
+
+			answer += "Не будем приветствовать вновьприбывших участников чата"
+
+		default:
+			answer += "Не понимаю о чём ты."
+		}
+	}
+
+	resp, err := tg.SendMessage(
+		answer,
+		msg.Message.Chat.ID,
+		&echotron.MessageOptions{ParseMode: "MarkdownV2"},
+	)
+
+	if err != nil || !resp.Ok {
+		// TODO: поддержать миграцию группы в супергруппу, поддержать вариант, когда бот замьючен.
+		// Красиво оформить ошибку, с полями итд, как tracedump, только ошибка.
+		// N.B. тут может быть сообщение о том, что группа превратилась в супергруппу, или что бот не имеет прав писать
+		// сообщения в чятик. Это надо бы отслеживать и хэндлить.
+		return true, fmt.Errorf(
+			"unable to send message to telegram api: %w\nResponse dump: %s",
+			err,
+			spew.Sdump(resp),
+		)
+	}
+
+	return true, nil
 }
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
