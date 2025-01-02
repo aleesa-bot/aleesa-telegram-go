@@ -111,7 +111,7 @@ func ConstructPartialChatUsername(c *echotron.Chat) string {
 }
 
 // ConstructUserFirstLastName Пытается найти и вытащить first name и last name пользователя, если не получается, то
-// вначале пытается фоллбэчиться на first name, потом на last name, потом на username.
+// вначале пытается фоллбэчится на first name, потом на last name, потом на username.
 func ConstructUserFirstLastName(u *echotron.User) string {
 	var user string
 
@@ -131,7 +131,7 @@ func ConstructUserFirstLastName(u *echotron.User) string {
 	return user
 }
 
-// ConstructTelegramHighlightName генерирует имя пользователя, которое триггерит на стороне клиент ивент меншена
+// ConstructTelegramHighlightName генерирует имя пользователя, которое триггерит на стороне клиента ивент меншена
 // определённого пользователя.
 func ConstructTelegramHighlightName(u *echotron.User) string {
 	var (
