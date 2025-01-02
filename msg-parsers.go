@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/NicoNex/echotron/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -124,40 +126,13 @@ func telegramMsgParser(msg *echotron.Update) {
 	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) { //nolint: revive,staticcheck
 		// TODO: поддержать миграцию настроек чата на новый chatId.
 		// TODO: подумать, что можно сделать с настройками бэкэндов. Кажись, ничего, но надо глянуть.
-	}
 
-	// Люди пришли в чят.
-	if msg.Message.NewChatMembers != nil { //nolint: revive,staticcheck
-		// TODO: проверить, надо ли приветствовать, выбрать одну из приветственных фраз, потянуть время, типа, мы пишем
-		// текст и поприветствовать вновь прибывшего.
-	}
-
-	// Человек ушёл из чата.
-	if msg.Message.LeftChatMember != nil {
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg") == "1" {
-			user := ConstructUserFirstLastName(msg.Message.From)
-
-			goodbye := fmt.Sprintf("Прощаемся с %s", user)
-
-			opts := echotron.MessageOptions{DisableNotification: true, ParseMode: "MarkdownV2"}
-
-			if msg.Message.ThreadID != 0 {
-				opts.MessageThreadID = int64(msg.Message.ThreadID)
-			}
-
-			if res, err := tg.SendMessage(goodbye, msg.Message.Chat.ID, &opts); err != nil {
-				log.Errorf("Unable to send message to telegram api: %s", err)
-			} else if !res.Ok {
-				log.Errorf("Unable to send message to telegram api: %s", res.Description)
-			}
-		}
-	}
-
-	// Если сообщение было зацензурено, то дальше его обрабатывать не надо.
-	if Censor(msg) {
 		return
 	}
 
+	// Здесь начинается парсинг, подразумевающий какие-то сообщения бота в чат, поэтому с этой точки можно/нужно
+	// получить информацию о самом боте.
+	// TODO: пораскинуть, можно ли как-то кэшировать эту информацию, чтобы не дёргать api по чём зря.
 	var (
 		rmsg         rMsg
 		errorOccured bool
@@ -179,6 +154,100 @@ func telegramMsgParser(msg *echotron.Update) {
 	}
 
 	if errorOccured {
+		return
+	}
+
+	// Люди пришли в чят.
+	if msg.Message.NewChatMembers != nil { //nolint: revive,staticcheck
+		// TODO: проверить, надо ли приветствовать, выбрать одну из приветственных фраз, потянуть время, типа, мы пишем
+		// текст и поприветствовать вновь прибывшего.
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg") == "1" {
+			// Пользователи, которых мы приветсвуем, одной строкой.
+			var users string
+
+			if len(msg.Message.NewChatMembers) > 1 {
+				lastOne := msg.Message.NewChatMembers[len(msg.Message.NewChatMembers)-1]
+				theRest := msg.Message.NewChatMembers[:len(msg.Message.NewChatMembers)-1]
+				var usersSlice []string
+
+				for _, user := range theRest {
+					usersSlice = append(usersSlice, ConstructTelegramHighlightName(user))
+				}
+
+				users = strings.Join(usersSlice, ", ")
+				users += fmt.Sprintf(" and %s", ConstructTelegramHighlightName(lastOne))
+			} else {
+				users = ConstructTelegramHighlightName(msg.Message.NewChatMembers[0])
+			}
+
+			phrase := fmt.Sprintf(
+				"%s, %s. Представьтес, пожалуйста, и расскажите, что вас сюда привело.",
+				introduceGreet[rand.IntN(len(introduceGreet))],
+				users,
+			)
+
+			// Потянуть время, изобразить настоящего человека.
+			resp, err := tg.SendChatAction(
+				echotron.Typing,
+				msg.Message.From.ID,
+				&echotron.ChatActionOptions{MessageThreadID: int(msg.Message.ThreadID)},
+			)
+
+			// TODO: вероятно, ошибку надо засылать в обработчик ошибок, так как в ней может быть миграция чятика или
+			// что-то, что тоже надо хэндлить.
+			if err != nil || !resp.Ok {
+				log.Errorf(
+					"unable to send message to telegram api: %s\nResponse dump: %s",
+					err,
+					spew.Sdump(resp),
+				)
+			}
+
+			resp1, err := tg.SendMessage(
+				phrase,
+				msg.Message.Chat.ID,
+				&echotron.MessageOptions{ParseMode: "MarkdownV2", MessageThreadID: int64(msg.Message.ThreadID)},
+			)
+
+			// TODO: вероятно, ошибку надо засылать в обработчик ошибок, так как в ней может быть миграция чятика или
+			// что-то, что тоже надо хэндлить.
+			if err != nil || !resp1.Ok {
+				log.Errorf(
+					"unable to send message to telegram api: %s\nResponse dump: %s",
+					err,
+					spew.Sdump(resp1),
+				)
+			}
+		}
+
+		return
+	}
+
+	// Человек ушёл из чата.
+	if msg.Message.LeftChatMember != nil {
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg") == "1" {
+			user := ConstructUserFirstLastName(msg.Message.From)
+
+			goodbye := fmt.Sprintf("Прощаемся с %s", user)
+
+			opts := echotron.MessageOptions{DisableNotification: true, ParseMode: "MarkdownV2"}
+
+			if msg.Message.ThreadID != 0 {
+				opts.MessageThreadID = int64(msg.Message.ThreadID)
+			}
+
+			if res, err := tg.SendMessage(goodbye, msg.Message.Chat.ID, &opts); err != nil {
+				log.Errorf("Unable to send message to telegram api: %s", err)
+			} else if !res.Ok {
+				log.Errorf("Unable to send message to telegram api: %s", res.Description)
+			}
+		}
+
+		return
+	}
+
+	// Если сообщение было зацензурено, то дальше его обрабатывать не надо.
+	if Censor(msg) {
 		return
 	}
 
@@ -287,9 +356,10 @@ func telegramMsgParser(msg *echotron.Update) {
 			msg.Message.Text = m.ReplaceAllString(msg.Message.Text, "")
 		}
 
-		// TODO: обращение может содержать знаки препинания, пробелы перед, пробелы после. Надо бы это поддержать.
+		// TODO: обращение может содержать знаки препинания, пробелы перед, пробелы после имени бота. Надо бы это поддержать.
+		// TODO: унести вырезание имени бота в отдельную процедуру.
 		switch {
-		// Если у на есть и имя и фамилия бота, то попробуем их слепить вместе, через "1 и более" пробел и вырезать
+		// Если у нас есть и имя и фамилия бота, то попробуем их слепить вместе, через "1 и более" пробел и вырезать
 		// полученное из входящей фразы.
 		case quotedBotFirstName != "" && quotedBotLastName != "":
 			messageContainsBotName, err := regexp.MatchString(
@@ -1090,7 +1160,7 @@ func Admin(msg *echotron.Update) (bool, error) {
 			answer += "Не будем приветствовать вновьприбывших участников чата"
 
 		default:
-			answer += "Не понимаю о чём ты."
+			answer += "Не понимаю, о чём ты."
 		}
 	}
 

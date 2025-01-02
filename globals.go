@@ -33,4 +33,13 @@ var settingsDB = make(map[string]*pebble.DB)
 
 var tg echotron.API
 
+// Приветсвенные фразы для новых участников чата.
+var introduceGreet = [...]string{
+	"Дратути",
+	"Дарована",
+	"Доброе утро, день или вечер",
+	"Добро пожаловать в наше скромное коммунити",
+	"Наше вам с кисточкой тут, на канальчике",
+}
+
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */
