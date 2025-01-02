@@ -622,6 +622,7 @@ func Censor(msg *echotron.Update) bool {
 	return result
 }
 
+// Help Выводит в чат сообщение с основными командами бота.
 func Help(cmd *echotron.Update) (bool, error) {
 	help := "```\n"
 	help += fmt.Sprintf("%shelp | %sпомощь             - список команд", config.Csign, config.Csign)
