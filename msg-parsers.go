@@ -773,6 +773,10 @@ func Admin(msg *echotron.Update) (bool, error) {
 		answer += fmt.Sprintf("%sadmin приветствие     - приветствуем ли новых участников чата\n", config.Csign)
 		answer += fmt.Sprintf("%sadmin greet #         - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", config.Csign)
 		answer += fmt.Sprintf("%sadmin приветствие #   - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin goodbye         - прощаемся ли с ушедшими участниками чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin прощание        - прощаемся ли с ушедшими участниками чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin goodbye #       - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n", config.Csign)
+		answer += fmt.Sprintf("%sadmin прощание #      - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n", config.Csign)
 		answer += fmt.Sprintf("%sadmin oboobs #        - где 1 - вкл, 0 - выкл плагина oboobs\n", config.Csign)
 		answer += fmt.Sprintf(
 			"%sadmin oboobs          - показываем ли сисечки по просьбе участников чата (команды %stits, %stities, %sboobs, %sboobies, %sсиси, %sсисечки)\n",
@@ -1158,6 +1162,36 @@ func Admin(msg *echotron.Update) (bool, error) {
 			}
 
 			answer += "Не будем приветствовать вновьприбывших участников чата"
+
+		default:
+			answer += "Не понимаю, о чём ты."
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](goodbye|прощание)$").MatchString(c):
+		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg") == "1" {
+			answer += "Прощаемся с ушедшими участниками чатика"
+		} else {
+			answer += "Не прощаемся с ушедшими участниками чатика"
+		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](goodbye|прощание)[[:space:]].*$").MatchString(c):
+		// Снова регулярка, это не оч эффективно, но зато просто.
+		cmdArray := regexp.MustCompile("[[:space:]]").Split(c, 3)
+
+		switch cmdArray[2] {
+		case "1":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg", "1"); err != nil {
+				return true, err
+			}
+
+			answer += "Будем прощаться с ушедшими участниками чата"
+
+		case "0":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg", "0"); err != nil {
+				return true, err
+			}
+
+			answer += "Не будем прощаться с ушедшими участниками чата"
 
 		default:
 			answer += "Не понимаю, о чём ты."
