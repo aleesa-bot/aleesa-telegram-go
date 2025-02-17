@@ -496,7 +496,7 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 			"кис", "drink", "праздник", "fox", "лис", "frog", "лягушка", "horse", "лошадь", "лошадка", "monkeyuser",
 			"owl", "сова", "сыч", "rabbit", "bunny", "кролик", "snail", "улитка", "tits", "boobs", "tities", "boobies",
 			"сиси", "сисечки", "butt", "booty", "ass", "попа", "попка", "xkcd", "dig", "копать", "fish", "fishing",
-			"рыба", "рыбка", "рыбалка", "karma", "карма", "fuck",
+			"рыба", "рыбка", "рыбалка", "karma", "карма", "fuck", "weather", "погода", "w", "п", "погодка", "погадка",
 		}
 
 		for _, c := range cmds {
@@ -719,11 +719,11 @@ func Help(cmd *echotron.Update) (bool, error) {
 	help += fmt.Sprintf("%sroll | %sdice | %sкости      - бросить кости", config.Csign, config.Csign, config.Csign)
 	help += fmt.Sprintf("%ssnail | %sулитка            - улитка", config.Csign, config.Csign)
 	help += fmt.Sprintf("%sver | %sversion | %sверсия   - что-то про версию ПО", config.Csign, config.Csign, config.Csign)
-	help += fmt.Sprintf("%sw город | %sп город         - погода в указанном городе", config.Csign, config.Csign)
-	help += fmt.Sprintf("%sweather город              - погода в указанном городе", config.Csign)
-	help += fmt.Sprintf("%sпогода город               - погода в указанном городе", config.Csign)
-	help += fmt.Sprintf("%sпогодка город              - погода в указанном городе", config.Csign)
-	help += fmt.Sprintf("%sпогадка город              - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sw <город> | %sп <город>     - погода в указанном городе", config.Csign, config.Csign)
+	help += fmt.Sprintf("%sweather <город>            - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогода <город>             - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогодка <город>            - погода в указанном городе", config.Csign)
+	help += fmt.Sprintf("%sпогадка <город>            - погода в указанном городе", config.Csign)
 	help += fmt.Sprintf("%sxkcd                       - рандомный стрип с сайта xkcd.ru", config.Csign)
 	help += fmt.Sprintf("%skarma фраза | %sкарма фраза - посмотреть карму фразы", config.Csign, config.Csign)
 	help += "```\n"
