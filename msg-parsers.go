@@ -1196,6 +1196,29 @@ func Admin(msg *echotron.Update) (bool, error) {
 		default:
 			answer += "Не понимаю, о чём ты."
 		}
+
+	case regexp.MustCompile("^(admin|админ)[[:space:]](chan_msg)[[:space:]].*$").MatchString(c):
+		// Снова регулярка, это не оч эффективно, но зато просто.
+		cmdArray := regexp.MustCompile("[[:space:]]").Split(c, 3)
+
+		switch cmdArray[2] {
+		case "1":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "ChanMsg", "1"); err != nil {
+				return true, err
+			}
+
+			answer += "Будем удалять сообщения, написанные от имени канала"
+
+		case "0":
+			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "ChanMsg", "0"); err != nil {
+				return true, err
+			}
+
+			answer += "Не будем удалять сообщения, написанные от имени канала"
+
+		default:
+			answer += "Не понимаю, о чём ты."
+		}
 	}
 
 	resp, err := tg.SendMessage(
