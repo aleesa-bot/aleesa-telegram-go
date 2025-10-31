@@ -8,43 +8,21 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"aleesa-telegram-go/internal/log"
+
 	"github.com/go-redis/redis/v8"
-	log "github.com/sirupsen/logrus"
 )
 
 // init производит некоторую инициализацию перед запуском main().
 func init() {
-	log.SetFormatter(&log.TextFormatter{
-		DisableQuote:           true,
-		DisableLevelTruncation: false,
-		DisableColors:          true,
-		FullTimestamp:          true,
-		TimestampFormat:        "2006-01-02 15:04:05",
-	})
-
-	// no panic, no trace
-	switch config.Loglevel {
-	case "fatal":
-		log.SetLevel(log.FatalLevel)
-	case "error":
-		log.SetLevel(log.ErrorLevel)
-	case "warn":
-		log.SetLevel(log.WarnLevel)
-	case "info":
-		log.SetLevel(log.InfoLevel)
-	case "debug":
-		log.SetLevel(log.DebugLevel)
-	default:
-		log.SetLevel(log.InfoLevel)
-	}
-
-	var err error
+	var (
+		err error
+	)
 
 	executablePath, err := os.Executable()
 
 	if err != nil {
-		log.Errorf("Unable to get current executable path: %s", err)
-		os.Exit(1)
+		log.Fatalf("Unable to get current executable path: %s", err)
 	}
 
 	configJSONPath := fmt.Sprintf("%s/data/config.json", filepath.Dir(executablePath))
@@ -72,19 +50,25 @@ func init() {
 }
 
 func main() {
-	// Main context
-	var ctx = context.Background()
+	var (
+		logfile *os.File
+		err     error
+	)
 
 	// Откроем лог и скормим его логгеру.
 	if config.Log != "" {
-		logfile, err := os.OpenFile(config.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+		logfile, err = os.OpenFile(config.Log, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 
 		if err != nil {
-			log.Fatalf("Unable to open log file %s: %s", config.Log, err)
+			log.Errorf("Unable to open log file %s: %s", config.Log, err)
+			os.Exit(1)
 		}
-
-		log.SetOutput(logfile)
 	}
+
+	log.Init(config.Loglevel, logfile)
+
+	// Main context
+	var ctx = context.Background()
 
 	// Инициализируем redis-клиента.
 	redisClient = redis.NewClient(&redis.Options{

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"aleesa-telegram-go/internal/log"
+
 	"github.com/hjson/hjson-go"
-	log "github.com/sirupsen/logrus"
 )
 
 // parseConfig разбирает и валидирует даденный конфиг.

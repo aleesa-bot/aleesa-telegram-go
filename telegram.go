@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 
+	"aleesa-telegram-go/internal/log"
+
 	"github.com/NicoNex/echotron/v3"
-	log "github.com/sirupsen/logrus"
 )
 
 // telega основная горутинка, реализующая бота.

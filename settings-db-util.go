@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io/fs"
 
+	"aleesa-telegram-go/internal/log"
+
 	"github.com/cockroachdb/errors/oserror"
 	"github.com/cockroachdb/pebble"
-	log "github.com/sirupsen/logrus"
 )
 
 // StoreKV сохраняет в указанной бд ключ и значение.

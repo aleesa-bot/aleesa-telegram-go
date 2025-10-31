@@ -4,7 +4,7 @@ import (
 	"os"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"aleesa-telegram-go/internal/log"
 )
 
 // sigHandler хэндлер сигналов закрывает все бд, все сетевые соединения и сваливает из приложения.
@@ -15,11 +15,11 @@ func sigHandler() {
 		var s = <-sigChan
 		switch s {
 		case syscall.SIGINT:
-			log.Infoln("Got SIGINT, quitting")
+			log.Info("Got SIGINT, quitting")
 		case syscall.SIGTERM:
-			log.Infoln("Got SIGTERM, quitting")
+			log.Info("Got SIGTERM, quitting")
 		case syscall.SIGQUIT:
-			log.Infoln("Got SIGQUIT, quitting")
+			log.Info("Got SIGQUIT, quitting")
 
 		// Заходим на новую итерацию, если у нас "неинтересный" сигнал.
 		default:

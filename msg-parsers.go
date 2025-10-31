@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	"aleesa-telegram-go/internal/log"
+
 	"github.com/NicoNex/echotron/v3"
 	"github.com/davecgh/go-spew/spew"
-	log "github.com/sirupsen/logrus"
 )
 
 // telego msg parser
