@@ -1,4 +1,4 @@
-package main
+package tg
 
 import (
 	"os"
@@ -7,12 +7,12 @@ import (
 	"aleesa-telegram-go/internal/log"
 )
 
-// sigHandler хэндлер сигналов закрывает все бд, все сетевые соединения и сваливает из приложения.
-func sigHandler() {
+// SigHandler хэндлер сигналов закрывает все бд, все сетевые соединения и сваливает из приложения.
+func SigHandler() {
 	var err error
 
 	for {
-		var s = <-sigChan
+		var s = <-SigChan
 		switch s {
 		case syscall.SIGINT:
 			log.Info("Got SIGINT, quitting")
@@ -27,16 +27,16 @@ func sigHandler() {
 		}
 
 		// Чтобы не срать в логи ошибками от редиски, проставим shutdown state приложения в true.
-		shutdown = true
+		Shutdown = true
 
 		// Отпишемся от всех каналов и закроем коннект к редиске.
-		if err = subscriber.Unsubscribe(ctx); err != nil {
+		if err = Subscriber.Unsubscribe(ctx); err != nil {
 			log.Errorf("Unable to unsubscribe from redis channels cleanly: %s", err)
 		} else {
 			log.Debug("Unsubscribe from all redis channels")
 		}
 
-		if err = subscriber.Close(); err != nil {
+		if err = Subscriber.Close(); err != nil {
 			log.Errorf("Unable to close redis connection cleanly: %s", err)
 		} else {
 			log.Debug("Close redis connection")

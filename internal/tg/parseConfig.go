@@ -1,4 +1,4 @@
-package main
+package tg
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ import (
 	"github.com/hjson/hjson-go"
 )
 
-// parseConfig разбирает и валидирует даденный конфиг.
-func parseConfig(path string) (myConfig, error) {
+// ParseConfig разбирает и валидирует даденный конфиг.
+func ParseConfig(path string) (myConfig, error) {
 	fileInfo, err := os.Stat(path)
 
 	// Предполагаем, что файла либо нет, либо мы не можем его прочитать, второе надо бы логгировать, но пока забьём.

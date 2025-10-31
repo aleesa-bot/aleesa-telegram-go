@@ -9,7 +9,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/hjson/hjson-go v3.3.0+incompatible
-	github.com/sirupsen/logrus v1.9.3
 )
 
 require (

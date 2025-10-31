@@ -1,4 +1,4 @@
-package main
+package tg
 
 // myConfig структура, описывающая формат Конфига.
 type myConfig struct {

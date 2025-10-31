@@ -1,4 +1,4 @@
-package main
+package tg
 
 import (
 	"crypto/sha256"
@@ -59,7 +59,7 @@ func GetSetting(chatID string, setting string) string {
 		// настройками порождается огромное количество файлов. Умолчальное ограничение на количество файлов - 500 штук,
 		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений.
 		options.L0CompactionFileThreshold = 8
-		settingsDB[database], err = pebble.Open(config.DataDir+"/"+database, &options)
+		settingsDB[database], err = pebble.Open(Config.DataDir+"/"+database, &options)
 
 		if err != nil {
 			log.Errorf("Unable to open settings db, %s: %s\n", database, err)
@@ -105,7 +105,7 @@ func SaveSetting(chatID string, setting string, value string) error {
 		// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений.
 		options.L0CompactionFileThreshold = 8
 
-		settingsDB[database], err = pebble.Open(config.DataDir+"/"+database, &options)
+		settingsDB[database], err = pebble.Open(Config.DataDir+"/"+database, &options)
 
 		if err != nil {
 			log.Errorf("Unable to open settings db, %s: %s\n", database, err)
