@@ -26,7 +26,7 @@ func RedisMsgParser(msg string) {
 		return
 	}
 
-	// Validate our j
+	// Validate our j.
 	if exist := j.From; exist == "" {
 		log.Warnf("Incorrect msg from redis, no from field: %s", msg)
 
@@ -63,7 +63,7 @@ func RedisMsgParser(msg string) {
 		return
 	}
 
-	// j.Misc.Answer может и не быть, тогда ответа на такое сообщение не будет
+	// j.Misc.Answer может и не быть, тогда ответа на такое сообщение не будет.
 	if j.Misc.Answer == 0 {
 		log.Debug("Field Misc->Answer = 0, skipping message")
 
@@ -76,14 +76,14 @@ func RedisMsgParser(msg string) {
 		j.Misc.Csign = Config.Csign
 	}
 
-	// j.Misc.FwdCnt если нам его не передали, то будет 0
+	// j.Misc.FwdCnt если нам его не передали, то будет 0.
 	if exist := j.Misc.Fwdcnt; exist == 0 {
 		j.Misc.Fwdcnt = 1
 	}
 
-	// j.Misc.GoodMorning может быть 1 или 0, по-умолчанию 0
-	// j.Misc.MsgFormat может быть 1 или 0, по-умолчанию 0
-	// j.Misc.Username можно не передавать, тогда будет пустая строка
+	// j.Misc.GoodMorning может быть 1 или 0, по-умолчанию 0.
+	// j.Misc.MsgFormat может быть 1 или 0, по-умолчанию 0.
+	// j.Misc.Username можно не передавать, тогда будет пустая строка.
 
 	// Отвалидировались, теперь вернёмся к нашим баранам.
 

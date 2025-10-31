@@ -1,8 +1,10 @@
+// Package tg implements most of aleesa-telegram-go functionality.
 package tg
 
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/NicoNex/echotron/v3"
 	"github.com/davecgh/go-spew/spew"
@@ -18,6 +20,7 @@ func Admin(msg *echotron.Update) (bool, error) {
 	switch {
 	case c == "admin" || c == "админ":
 		answer = "```\n"
+
 		answer += fmt.Sprintf("%sadmin censor          - показать список состояния типов сообщений\n", Config.Csign)
 		answer += fmt.Sprintf("%sадмин ценз            - показать список состояния типов сообщений\n", Config.Csign)
 		answer += fmt.Sprintf("%sadmin censor type #   - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n", Config.Csign)
@@ -64,67 +67,67 @@ func Admin(msg *echotron.Update) (bool, error) {
 		answer += "```"
 
 	case regexp.MustCompile("^(admin|админ)[[:space:]](censor|ценз)$").MatchString(c):
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VoiceMsg") == "1" {
 			answer += "Тип сообщения voice удаляется\n"
 		} else {
 			answer += "Тип сообщения voice не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AudioMsg") == "1" {
 			answer += "Тип сообщения audio удаляется\n"
 		} else {
 			answer += "Тип сообщения audio не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PhotoMsg") == "1" {
 			answer += "Тип сообщения photo удаляется\n"
 		} else {
 			answer += "Тип сообщения photo не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoMsg") == "1" {
 			answer += "Тип сообщения video удаляется\n"
 		} else {
 			answer += "Тип сообщения video не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoNoteMsg") == "1" {
 			answer += "Тип сообщения video_note удаляется\n"
 		} else {
 			answer += "Тип сообщения video_note не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AnimationMsg") == "1" {
 			answer += "Тип сообщения animation удаляется\n"
 		} else {
 			answer += "Тип сообщения animation не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "StickerMsg") == "1" {
 			answer += "Тип сообщения sticker удаляется\n"
 		} else {
 			answer += "Тип сообщения sticker не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DiceMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "DiceMsg") == "1" {
 			answer += "Тип сообщения dice удаляется\n"
 		} else {
 			answer += "Тип сообщения dice не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GameMsg") == "1" {
 			answer += "Тип сообщения game удаляется\n"
 		} else {
 			answer += "Тип сообщения game не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PollMsg") == "1" {
 			answer += "Тип сообщения poll удаляется\n"
 		} else {
 			answer += "Тип сообщения poll не удаляется\n"
 		}
 
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "DocumentMsg") == "1" {
 			answer += "Тип сообщения document удаляется\n"
 		} else {
 			answer += "Тип сообщения document не удаляется\n"
@@ -139,14 +142,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "voice":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VoiceMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с voice будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VoiceMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VoiceMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -159,14 +162,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "audio":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AudioMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с audio будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AudioMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AudioMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -179,14 +182,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "photo":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PhotoMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с photo будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PhotoMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PhotoMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -199,14 +202,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "video":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с video будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -219,14 +222,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "video_note":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoNoteMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с video_note будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "VideoNoteMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "VideoNoteMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -239,14 +242,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "animation":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AnimationMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с animation будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "AnimationMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "AnimationMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -259,14 +262,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "sticker":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "StickerMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с sticker будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "StickerMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "StickerMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -279,14 +282,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "dice":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DiceMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "DiceMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с dice будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "diceMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "diceMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -299,14 +302,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "game":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GameMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с game будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GameMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GameMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -319,14 +322,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "poll":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PollMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с poll будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "PollMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "PollMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -339,14 +342,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		case "document":
 			switch cmdArray[3] {
 			case "1":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg", "1"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "DocumentMsg", "1"); err != nil {
 					return true, err
 				}
 
 				answer += "Теперь сообщения с document будут оставаться"
 
 			case "0":
-				if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "DocumentMsg", "0"); err != nil {
+				if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "DocumentMsg", "0"); err != nil {
 					return true, err
 				}
 
@@ -361,7 +364,7 @@ func Admin(msg *echotron.Update) (bool, error) {
 		}
 
 	case regexp.MustCompile("^(admin|админ)[[:space:]](fortune|фортунка)$").MatchString(c):
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "FortuneMsg") == "1" {
 			answer += "Фортунки с утра показываются"
 		} else {
 			answer += "Фортунки с утра не показываются"
@@ -375,14 +378,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		//       мы не сможем вытащить список чятиков.
 		switch cmdArray[2] {
 		case "1":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg", "1"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "FortuneMsg", "1"); err != nil {
 				return true, err
 			}
 
 			answer += "Теперь сообщения с фортункой будут отправляться с утра"
 
 		case "0":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "FortuneMsg", "0"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "FortuneMsg", "0"); err != nil {
 				return true, err
 			}
 
@@ -393,7 +396,7 @@ func Admin(msg *echotron.Update) (bool, error) {
 		}
 
 	case regexp.MustCompile("^(admin|админ)[[:space:]](greet|приветствие)$").MatchString(c):
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GreetMsg") == "1" {
 			answer += "Приветствуем вновьприбывших участников чатика"
 		} else {
 			answer += "Не приветствуем вновьприбывших участников чатика"
@@ -407,14 +410,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 		//       мы не сможем вытащить список чятиков.
 		switch cmdArray[2] {
 		case "1":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg", "1"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GreetMsg", "1"); err != nil {
 				return true, err
 			}
 
 			answer += "Будем приветствовать вновьприбывших участников чата"
 
 		case "0":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg", "0"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GreetMsg", "0"); err != nil {
 				return true, err
 			}
 
@@ -425,7 +428,7 @@ func Admin(msg *echotron.Update) (bool, error) {
 		}
 
 	case regexp.MustCompile("^(admin|админ)[[:space:]](goodbye|прощание)$").MatchString(c):
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GoodbyeMsg") == "1" {
 			answer += "Прощаемся с ушедшими участниками чатика"
 		} else {
 			answer += "Не прощаемся с ушедшими участниками чатика"
@@ -437,14 +440,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 
 		switch cmdArray[2] {
 		case "1":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg", "1"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GoodbyeMsg", "1"); err != nil {
 				return true, err
 			}
 
 			answer += "Будем прощаться с ушедшими участниками чата"
 
 		case "0":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg", "0"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GoodbyeMsg", "0"); err != nil {
 				return true, err
 			}
 
@@ -460,14 +463,14 @@ func Admin(msg *echotron.Update) (bool, error) {
 
 		switch cmdArray[2] {
 		case "1":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "ChanMsg", "1"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "ChanMsg", "1"); err != nil {
 				return true, err
 			}
 
 			answer += "Будем удалять сообщения, написанные от имени канала"
 
 		case "0":
-			if err := SaveSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "ChanMsg", "0"); err != nil {
+			if err := SaveSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "ChanMsg", "0"); err != nil {
 				return true, err
 			}
 

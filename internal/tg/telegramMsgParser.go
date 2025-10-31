@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"aleesa-telegram-go/internal/log"
@@ -21,10 +22,9 @@ func telegramMsgParser(msg *echotron.Update) {
 	}
 
 	// Сообщение о том, что этот чятик изменился, например, превратился в супергруппу.
-	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) { //nolint: revive,staticcheck
+	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) {
 		// TODO: поддержать миграцию настроек чата на новый chatId.
 		// TODO: подумать, что можно сделать с настройками бэкэндов. Кажись, ничего, но надо глянуть.
-
 		return
 	}
 
@@ -56,16 +56,17 @@ func telegramMsgParser(msg *echotron.Update) {
 	}
 
 	// Люди пришли в чят.
-	if msg.Message.NewChatMembers != nil { //nolint: revive,staticcheck
+	if msg.Message.NewChatMembers != nil {
 		// TODO: проверить, надо ли приветствовать, выбрать одну из приветственных фраз, потянуть время, типа, мы пишем
 		// текст и поприветствовать вновь прибывшего.
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GreetMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GreetMsg") == "1" {
 			// Пользователи, которых мы приветсвуем, одной строкой.
 			var users string
 
 			if len(msg.Message.NewChatMembers) > 1 {
 				lastOne := msg.Message.NewChatMembers[len(msg.Message.NewChatMembers)-1]
 				theRest := msg.Message.NewChatMembers[:len(msg.Message.NewChatMembers)-1]
+
 				var usersSlice []string
 
 				for _, user := range theRest {
@@ -73,6 +74,7 @@ func telegramMsgParser(msg *echotron.Update) {
 				}
 
 				users = strings.Join(usersSlice, ", ")
+
 				users += fmt.Sprintf(" and %s", ConstructTelegramHighlightName(lastOne))
 			} else {
 				users = ConstructTelegramHighlightName(msg.Message.NewChatMembers[0])
@@ -88,7 +90,7 @@ func telegramMsgParser(msg *echotron.Update) {
 			resp, err := tg.SendChatAction(
 				echotron.Typing,
 				msg.Message.From.ID,
-				&echotron.ChatActionOptions{MessageThreadID: int(msg.Message.ThreadID)},
+				&echotron.ChatActionOptions{MessageThreadID: msg.Message.ThreadID},
 			)
 
 			// TODO: вероятно, ошибку надо засылать в обработчик ошибок, так как в ней может быть миграция чятика или
@@ -123,7 +125,7 @@ func telegramMsgParser(msg *echotron.Update) {
 
 	// Человек ушёл из чата.
 	if msg.Message.LeftChatMember != nil {
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "GoodbyeMsg") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GoodbyeMsg") == "1" {
 			user := ConstructUserFirstLastName(msg.Message.From)
 
 			goodbye := fmt.Sprintf("Прощаемся с %s", user)
@@ -160,8 +162,8 @@ func telegramMsgParser(msg *echotron.Update) {
 		rmsg.Misc.Answer = 1
 
 		// Засылаем фразу в misc-канал (в роутер).
-		rmsg.Chatid = fmt.Sprintf("%d", msg.Message.Chat.ID)
-		rmsg.Userid = fmt.Sprintf("%d", msg.Message.From.ID)
+		rmsg.Chatid = strconv.FormatInt(msg.Message.Chat.ID, 10)
+		rmsg.Userid = strconv.FormatInt(msg.Message.From.ID, 10)
 		rmsg.Message = msg.Message.Text
 		rmsg.Mode = "private"
 		rmsg.Plugin = "telegram"
@@ -198,7 +200,7 @@ func telegramMsgParser(msg *echotron.Update) {
 			}
 
 			// Заталкиваем наш json в редиску.
-			if err := RedisClient.Publish(ctx, Config.Redis.Channel, data).Err(); err != nil {
+			if err := RedisClient.Publish(Ctx, Config.Redis.Channel, data).Err(); err != nil {
 				log.Warnf("Unable to send data to redis channel %s: %s", Config.Redis.Channel, err)
 			} else {
 				log.Debugf("Sent msg to redis channel %s: %s", Config.Redis.Channel, string(data))
@@ -209,7 +211,7 @@ func telegramMsgParser(msg *echotron.Update) {
 		// Обрабатываем сообщения для групп и супергрупп. По сути это примерно одинаковые вещи/сущности.
 		// Цензор удаляет сообщения из чятика, если они "неправильные" - от имени других каналов, аудиосообщения,
 		// содержат картинки, видео аудио итп, это настраивается через команду !admin censor.
-		if GetSetting(fmt.Sprintf("%d", msg.Message.Chat.ID), "censor") == "1" {
+		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "censor") == "1" {
 			// Если цензор отработал, больше делать нечего, сообщения уже нету.
 			if Censor(msg) {
 				return
@@ -239,7 +241,7 @@ func telegramMsgParser(msg *echotron.Update) {
 			return
 		}
 
-		// Здесь же, если фраза обращена к боту (ник или имя), выставляем флажок, что надо ответить
+		// Здесь же, если фраза обращена к боту (ник или имя), выставляем флажок, что надо ответить.
 		quotedBotUsername := regexp.QuoteMeta(me.Result.Username)
 		quotedBotFirstName := regexp.QuoteMeta(me.Result.FirstName)
 		quotedBotLastName := regexp.QuoteMeta(me.Result.LastName)
@@ -250,7 +252,9 @@ func telegramMsgParser(msg *echotron.Update) {
 			return
 		} else if messageContainsBotUsername {
 			rmsg.Misc.Answer = 1
+
 			m := regexp.MustCompile(quotedBotUsername)
+
 			msg.Message.Text = m.ReplaceAllString(msg.Message.Text, "")
 		}
 
@@ -273,7 +277,9 @@ func telegramMsgParser(msg *echotron.Update) {
 
 			if messageContainsBotName {
 				rmsg.Misc.Answer = 1
+
 				m := regexp.MustCompile(quotedBotFirstName + "[[:space:]]+" + quotedBotLastName)
+
 				msg.Message.Text = m.ReplaceAllString(msg.Message.Text, "")
 			}
 		// Если у нас есть только имя, то попробуем его вырезать из входящей фразы.
@@ -288,7 +294,9 @@ func telegramMsgParser(msg *echotron.Update) {
 
 			if messageContainsBotName {
 				rmsg.Misc.Answer = 1
+
 				m := regexp.MustCompile(quotedBotFirstName)
+
 				msg.Message.Text = m.ReplaceAllString(msg.Message.Text, "")
 			}
 		// Если у нас есть только фамилия, то попробуем его вырезать из входящей фразы.
@@ -303,14 +311,16 @@ func telegramMsgParser(msg *echotron.Update) {
 
 			if messageContainsBotName {
 				rmsg.Misc.Answer = 1
+
 				m := regexp.MustCompile(quotedBotLastName)
+
 				msg.Message.Text = m.ReplaceAllString(msg.Message.Text, "")
 			}
 		}
 
 		// Засылаем фразу в misc-канал (в роутер).
-		rmsg.Chatid = fmt.Sprintf("%d", msg.Message.Chat.ID)
-		rmsg.Userid = fmt.Sprintf("%d", msg.Message.From.ID)
+		rmsg.Chatid = strconv.FormatInt(msg.Message.Chat.ID, 10)
+		rmsg.Userid = strconv.FormatInt(msg.Message.From.ID, 10)
 		rmsg.Message = msg.Message.Text
 		rmsg.Mode = "public"
 		rmsg.Plugin = "telegram"
@@ -335,7 +345,7 @@ func telegramMsgParser(msg *echotron.Update) {
 		}
 
 		// Заталкиваем наш json в редиску.
-		if err := RedisClient.Publish(ctx, Config.Redis.Channel, data).Err(); err != nil {
+		if err := RedisClient.Publish(Ctx, Config.Redis.Channel, data).Err(); err != nil {
 			log.Warnf("Unable to send data to redis channel %s: %s", Config.Redis.Channel, err)
 		} else {
 			log.Debugf("Sent msg to redis channel %s: %s", Config.Redis.Channel, string(data))

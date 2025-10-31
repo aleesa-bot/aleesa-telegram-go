@@ -9,37 +9,42 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// Config - это у нас глобальная штука.
-var Config myConfig
+var (
+	// Config - это у нас глобальная штука.
+	Config MyConfig
 
-// To break circular message forwarding we must set some sane default, it can be overridden via config.
-var forwardMax int64 = 5
+	// forwardMax is used to break circular message forwarding we must set some sane default, it can be overridden via config.
+	forwardMax int64 = 5
 
-// Объектики клиента-редиски.
-var RedisClient *redis.Client
-var Subscriber *redis.PubSub
+	// RedisClient объектик клиента-редиски.
+	RedisClient *redis.Client
 
-// Main context.
-var ctx = context.Background()
+	// Subscriber is redis PubSub object.
+	Subscriber *redis.PubSub
 
-// Ставится в true, если мы получили сигнал на выключение.
-var Shutdown = false
+	// Ctx is main context.
+	Ctx = context.Background()
 
-// Канал, в который приходят уведомления для хэндлера сигналов от траппера сигналов.
-var SigChan = make(chan os.Signal, 1)
+	// Shutdown ставится в true, если мы получили сигнал на выключение.
+	Shutdown = false
 
-// Мапка с открытыми дескрипторами баз с настройками.
-var settingsDB = make(map[string]*pebble.DB)
+	// SigChan канал, в который приходят уведомления для хэндлера сигналов от траппера сигналов.
+	SigChan = make(chan os.Signal, 1)
 
-var tg echotron.API
+	// settingsDB мапка с открытыми дескрипторами баз с настройками.
+	settingsDB = make(map[string]*pebble.DB)
 
-// Приветсвенные фразы для новых участников чата.
-var introduceGreet = [...]string{
-	"Дратути",
-	"Дарована",
-	"Доброе утро, день или вечер",
-	"Добро пожаловать в наше скромное коммунити",
-	"Наше вам с кисточкой тут, на канальчике",
-}
+	// tg is var for telegram api.
+	tg echotron.API
+
+	// introduceGreet приветсвенные фразы для новых участников чата.
+	introduceGreet = [...]string{
+		"Дратути",
+		"Дарована",
+		"Доброе утро, день или вечер",
+		"Добро пожаловать в наше скромное коммунити",
+		"Наше вам с кисточкой тут, на канальчике",
+	}
+)
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

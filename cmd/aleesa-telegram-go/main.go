@@ -1,7 +1,7 @@
+// Package main is the main package of aleesa-telegram-go.
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,7 +26,7 @@ func init() {
 		log.Fatalf("Unable to get current executable path: %s", err)
 	}
 
-	configJSONPath := fmt.Sprintf("%s/data/config.json", filepath.Dir(executablePath))
+	configJSONPath := filepath.Dir(executablePath) + "/data/config.json"
 
 	locations := []string{
 		"~/.aleesa-telegram-go.json",
@@ -68,16 +68,15 @@ func main() {
 
 	log.Init(tg.Config.Loglevel, logfile)
 
-	// Main context
-	var ctx = context.Background()
-
 	// Инициализируем redis-клиента.
 	tg.RedisClient = redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", tg.Config.Redis.Server, tg.Config.Redis.Port),
 	})
 
 	log.Debugf("Lazy connect() to redis at %s:%d", tg.Config.Redis.Server, tg.Config.Redis.Port)
-	tg.Subscriber = tg.RedisClient.Subscribe(ctx, tg.Config.Redis.MyChannel)
+
+	tg.Subscriber = tg.RedisClient.Subscribe(tg.Ctx, tg.Config.Redis.MyChannel)
+
 	redisMsgChan := tg.Subscriber.Channel()
 
 	// Самое время поставить траппер сигналов.

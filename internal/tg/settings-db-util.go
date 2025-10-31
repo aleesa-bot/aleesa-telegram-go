@@ -52,7 +52,7 @@ func GetSetting(chatID string, setting string) string {
 	chatHash := sha256.Sum256([]byte(chatID))
 	database := fmt.Sprintf("settings_db/%x", chatHash)
 
-	// Если БД не открыта, откроем её
+	// Если БД не открыта, откроем её.
 	if _, ok := settingsDB[database]; !ok {
 		var options pebble.Options
 		// По дефолту ограничение ставится на мегабайты данных, а не на количество файлов, поэтому с дефолтными

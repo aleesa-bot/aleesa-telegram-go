@@ -2,6 +2,7 @@ package tg
 
 import (
 	"fmt"
+	"strconv"
 
 	"aleesa-telegram-go/internal/log"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // Telega основная горутинка, реализующая бота.
-func Telega(c myConfig) {
+func Telega(c MyConfig) {
 	tg = echotron.NewAPI(c.Telegram.Token)
 
 	for u := range echotron.PollingUpdates(c.Telegram.Token) {
@@ -86,11 +87,11 @@ func ConstructPartialUserUsername(u *echotron.User) string {
 		return u.LastName
 
 	default:
-		return fmt.Sprintf("%d", u.ID)
+		return strconv.FormatInt(u.ID, 10)
 	}
 }
 
-// ConstructPartialUserUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
+// ConstructPartialChatUsername пытается найти и вытащить username, если такового нет, вытаскивает First/Last Name, если
 // такового нет, то возвращает ID.
 func ConstructPartialChatUsername(c *echotron.Chat) string {
 	switch {
@@ -107,7 +108,7 @@ func ConstructPartialChatUsername(c *echotron.Chat) string {
 		return c.LastName
 
 	default:
-		return fmt.Sprintf("%d", c.ID)
+		return strconv.FormatInt(c.ID, 10)
 	}
 }
 
@@ -126,7 +127,7 @@ func ConstructUserFirstLastName(u *echotron.User) string {
 	case u.Username != "":
 		user = fmt.Sprintf("@%s", u.Username)
 	default:
-		user = fmt.Sprintf("%d", u.ID)
+		user = strconv.FormatInt(u.ID, 10)
 	}
 
 	return user

@@ -6,3 +6,4 @@
 /data/cache
 /aleesa-telegram-go
 /*.log
+/*.bck.*

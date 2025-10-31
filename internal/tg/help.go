@@ -10,6 +10,7 @@ import (
 // Help Выводит в чат сообщение с основными командами бота.
 func Help(cmd *echotron.Update) (bool, error) {
 	help := "```\n"
+
 	help += fmt.Sprintf("%shelp | %sпомощь             - список команд", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sanek | %sанек | %sанекдот    - рандомный анекдот с anekdot.ru", Config.Csign, Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sbuni                       - рандомный стрип hapi buni", Config.Csign)

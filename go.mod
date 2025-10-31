@@ -1,6 +1,6 @@
 module aleesa-telegram-go
 
-go 1.22
+go 1.25
 
 require (
 	github.com/NicoNex/echotron/v3 v3.33.1

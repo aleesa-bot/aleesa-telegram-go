@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
+	"strconv"
 
 	"github.com/NicoNex/echotron/v3"
 )
@@ -20,8 +22,8 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 
 	smsg.From = "telegram"
 	smsg.Plugin = "telegram"
-	smsg.Chatid = fmt.Sprintf("%d", cmd.Message.Chat.ID)
-	smsg.Userid = fmt.Sprintf("%d", cmd.Message.From.ID)
+	smsg.Chatid = strconv.FormatInt(cmd.Message.Chat.ID, 10)
+	smsg.Userid = strconv.FormatInt(cmd.Message.From.ID, 10)
 	smsg.Message = cmd.Message.Text
 	smsg.Misc.Answer = 1
 
@@ -60,12 +62,8 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 			"рыба", "рыбка", "рыбалка", "karma", "карма", "fuck", "weather", "погода", "w", "п", "погодка", "погадка",
 		}
 
-		for _, c := range cmds {
-			if command == c {
-				bingo = true
-
-				break
-			}
+		if slices.Contains(cmds, command) {
+			bingo = true
 		}
 
 		// Не нашлось команды в одно слово. Поищем команды с одним аргументом.
@@ -103,20 +101,14 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 			"dig", "копать", "fish", "fishing", "рыба", "рыбка", "рыбалка",
 		}
 
-		for _, c := range cmds {
-			// В vscode возникает ошибка при использовании if-а.
-			switch {
-			case command == c:
-				smsg.Misc.Username = ConstructTelegramHighlightName(cmd.Message.From)
-				smsg.Misc.Msgformat = 1
-
-				break //nolint: gosimple
-			}
+		if slices.Contains(cmds, command) {
+			smsg.Misc.Username = ConstructTelegramHighlightName(cmd.Message.From)
+			smsg.Misc.Msgformat = 1
 		}
 
 		// Если у нас супергруппа с тредами, надо проставить thread id.
 		if cmd.Message.Chat.Type == "supergroup" && cmd.Message.IsTopicMessage && cmd.Message.ThreadID != 0 {
-			smsg.ThreadID = fmt.Sprintf("%d", cmd.Message.ThreadID)
+			smsg.ThreadID = strconv.Itoa(cmd.Message.ThreadID)
 		}
 
 		// Отправляем сообщение в редиску.
@@ -129,7 +121,7 @@ func cmdParser(me echotron.APIResponseUser, cmd *echotron.Update) (bool, error) 
 		}
 
 		// Заталкиваем наш json в редиску.
-		if err := RedisClient.Publish(ctx, Config.Redis.Channel, data).Err(); err != nil {
+		if err := RedisClient.Publish(Ctx, Config.Redis.Channel, data).Err(); err != nil {
 			log.Warnf("Unable to send data to redis channel %s: %s", Config.Redis.Channel, err)
 		} else {
 			log.Debugf("Sent msg to redis channel %s: %s", Config.Redis.Channel, string(data))

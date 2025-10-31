@@ -1,3 +1,4 @@
+// Package log wraps log/slog for more easier and convinient use.
 package log
 
 import (
@@ -11,17 +12,19 @@ import (
 	"time"
 )
 
-// Handler exposes slog handler struct.
-var Handler slog.Handler
+var (
+	// Handler exposes slog handler struct.
+	Handler slog.Handler
 
-// Ctx log context. For now it is just sits here and do nothing.
-var Ctx = context.Background()
+	// Ctx log context. For now it is just sits here and do nothing.
+	Ctx = context.Background()
 
-// Writer go-writer eported for capturing other types of logs, even for std log go facility.
-var Writer io.Writer
+	// Writer go-writer eported for capturing other types of logs, even for std log go facility.
+	Writer io.Writer
 
-// reader is required for Writer to work properly. It is connected via io.Pipe() to Writer.
-var reader io.Reader
+	// reader is required for Writer to work properly. It is connected via io.Pipe() to Writer.
+	reader io.Reader
+)
 
 // Init setup logger stuff.
 // level can be error, warn, info, debug if something other supplied info level selected.
@@ -29,7 +32,6 @@ var reader io.Reader
 func Init(level string, fileDescriptor *os.File) {
 	var loglevel slog.Level
 
-	// no panic, no trace.
 	switch level {
 	case "debug":
 		loglevel = slog.LevelDebug
@@ -48,18 +50,17 @@ func Init(level string, fileDescriptor *os.File) {
 	}
 
 	opts := &slog.HandlerOptions{ //nolint: exhaustruct
-		// Use the ReplaceAttr function on the handler options
-		// to be able to replace any single attribute in the log output
+		// Use the ReplaceAttr function on the handler options to be able to replace any single attribute in the log
+		// output.
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr { //nolint: revive
-			// check that we are handling the time key
+			// Check that we are handling the time key.
 			if a.Key != slog.TimeKey {
 				return a
 			}
 
 			t := a.Value.Time()
 
-			// change the value from a time.Time to a String
-			// where the string has the correct time format.
+			// Change the value from a time.Time to the String. The string has correct time format.
 			a.Value = slog.StringValue(t.Format(time.DateTime))
 
 			return a
@@ -85,7 +86,7 @@ func readIoPipe() {
 
 	for {
 		for scanner.Scan() {
-			line := scanner.Text() // Get the current line as a string
+			line := scanner.Text() // Get the current line as a string.
 			slog.Debug(line)
 		}
 
