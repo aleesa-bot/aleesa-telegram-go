@@ -1,31 +1,32 @@
 {
-    # Cachedir used not only for caches but for some settings and stats too.
-    "cachedir" : "data/cache",
+	# Data_dir used not only for caches but for some settings and stats too.
+	"data_dir" : "data",
 
-    # Required for debugging reasons, if commented out or not exist, no debug logging appears at all.
-    "log" : "/var/log/aleesa-telegram/debug.log",
+	# Required for debugging reasons, if commented out or not exist, no debug logging appears at all.
+	"log" : "/var/log/aleesa-telegram/debug.log",
 
-    # Verbosity can be trace, debug, info (inform), notice, warning (warn), error (err), critical (crit, fatal), alert, emergency.
-    # Currently implemented debug, info, notice, warn, error, fatal. Notice is default logging level.
-    "loglevel": "notice",
+	# Verbosity can be trace, debug, info, warn, error.
+	# Currently implemented debug, info, warn, error. Info is default logging level.
+	"loglevel": "info",
 
-    # Stuff for telegram itself.
-    "telegrambot" : {
-        # Prefix-sign for all commands. In many irc-bots (eggdrop/windrop) it is "." (dot), in sulci it was "!".
-        # In telegram commands begin with "/" on the start of first (and only) line. In case of this bot you can define what to use.
-        "csign" : "!",
+	# Stuff for telegram itself.
+	"telegram" : {
+		"token" : "Long_string_given_by_@BotFather"
+	},
 
-        "token" : "Long_string_given_by_@BotFather"
-    },
+	# Prefix-sign for all commands. In many irc-bots (eggdrop/windrop) it is "." (dot), in sulci it was "!".
+	# In telegram commands begin with "/" on the start of first (and only) line. In case of this bot you can define what to use.
+	"csign" : "!",
 
-    # Unprivileged user to run this bot from.
-    "user" : "nobody",
+	# Unprivileged user to run this bot from.
+	"user" : "nobody",
 
-    "redis_server": "redis",
-    "redis_port" : "6379",
-    "redis_channels" : [
-        "telegram"
-    ],
-
-    "redis_router_channel" : "misc"
+	"redis": {
+		"server": "redis",
+		"port" : 6379,
+		"channel" : "misc",
+		"my_channel": "telegram"
+	}
 }
+
+// vim: set ft=json noet ai ts=4 sw=4 sts=4:

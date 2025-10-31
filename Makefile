@@ -6,10 +6,10 @@ BUILDOPTS=-ldflags="-s -w" -a -gcflags=all=-l -trimpath
 all: clean build
 
 build:
-	${GOOPTS} go build ${BUILDOPTS} -o aleesa-telegram-go
+	${GOOPTS} go build ${BUILDOPTS} -o aleesa-telegram-go ./cmd/aleesa-telegram-go
 
 clean:
-	go clean
+	rm -rf aleesa-telegram-go
 
 upgrade:
 	rm -rf vendor
