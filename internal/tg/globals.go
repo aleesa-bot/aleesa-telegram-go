@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/NicoNex/echotron/v3"
+	"github.com/carlescere/scheduler"
 	"github.com/cockroachdb/pebble"
 	"github.com/go-redis/redis/v8"
 )
@@ -45,6 +46,9 @@ var (
 		"Добро пожаловать в наше скромное коммунити",
 		"Наше вам с кисточкой тут, на канальчике",
 	}
+
+	// PeriodicJobs contains pointer to slice with sheduled job objects.
+	PeriodicJobs = make([]*scheduler.Job, 0)
 )
 
 /* vim: set ft=go noet ai ts=4 sw=4 sts=4: */

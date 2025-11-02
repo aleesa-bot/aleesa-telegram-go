@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	github.com/NicoNex/echotron/v3 v3.33.1
+	github.com/carlescere/scheduler v0.0.0-20170109141437-ee74d2f83d82
 	github.com/cockroachdb/errors v1.11.3
 	github.com/cockroachdb/pebble v1.1.1
 	github.com/davecgh/go-spew v1.1.1

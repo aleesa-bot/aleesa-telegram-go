@@ -11,6 +11,7 @@ import (
 	"aleesa-telegram-go/internal/log"
 	"aleesa-telegram-go/internal/tg"
 
+	"github.com/carlescere/scheduler"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -87,6 +88,13 @@ func main() {
 
 	go tg.SigHandler()
 	go tg.Telega(tg.Config)
+
+	// Periodically compact/flush pebble dbs.
+	if job, err := scheduler.Every(1).Hours().NotImmediately().Run(tg.TidySettingsDB); err != nil {
+		log.Errorf("Unable to schedule periodic settings db flush: %s", err)
+	} else {
+		tg.PeriodicJobs = append(tg.PeriodicJobs, job)
+	}
 
 	// Обработчик событий от редиски.
 	for msg := range redisMsgChan {

@@ -7,6 +7,9 @@ github.com/NicoNex/echotron/v3
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
+# github.com/carlescere/scheduler v0.0.0-20170109141437-ee74d2f83d82
+## explicit
+github.com/carlescere/scheduler
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2

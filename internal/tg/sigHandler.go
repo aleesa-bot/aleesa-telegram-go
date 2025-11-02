@@ -42,18 +42,12 @@ func SigHandler() {
 			log.Debug("Close redis connection")
 		}
 
-		// close all telego stuff.
-		resp, err := tg.LogOut()
-
-		if err != nil {
-			log.Errorf("Unable to send LogOut() to Telegram Bot API server")
+		// Quit all scheduled periodic jobs.
+		for _, job := range PeriodicJobs {
+			job.Quit <- true
 		}
 
-		if !resp.Ok {
-			log.Errorf("Telegram Bot API returns an error on LogOut(): %d, %s", resp.ErrorCode, resp.Description)
-		}
-
-		resp, err = tg.Close()
+		resp, err := tg.Close()
 
 		if err != nil {
 			log.Errorf("Unable to send Close() to Telegram Bot API server")
