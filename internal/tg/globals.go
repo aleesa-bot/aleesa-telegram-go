@@ -35,10 +35,19 @@ var (
 	// settingsDB мапка с открытыми дескрипторами баз с настройками.
 	settingsDB = make(map[string]*pebble.DB)
 
+	// chatListDB объектик *pebble.DB с базой, в которой лежит список чатов.
+	chatListDB *pebble.DB
+
+	// chatListDBName имя базы данных со списком чатов.
+	chatListDBName = "chat_list_db"
+
+	// chatList слайс со списоком чатов.
+	chatList = []string{}
+
 	// tg is var for telegram api.
 	tg echotron.API
 
-	// introduceGreet приветсвенные фразы для новых участников чата.
+	// introduceGreet приветственные фразы для новых участников чата.
 	introduceGreet = [...]string{
 		"Дратути",
 		"Дарована",

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 
 	"aleesa-telegram-go/internal/log"
 
@@ -43,6 +44,81 @@ func FetchV(db *pebble.DB, key string) (string, error) {
 	err = closer.Close()
 
 	return valueString, err
+}
+
+// InitChatListDB открывает для пользования базу со списком чатов.
+func InitChatListDB() error {
+	var (
+		err     error
+		options pebble.Options
+		dbPath  = Config.DataDir + "/" + chatListDBName
+	)
+
+	// По дефолту ограничение ставится на мегабайты данных, а не на количество файлов, поэтому с дефолтными
+	// настройками порождается огромное количество файлов. Умолчальное ограничение на количество файлов - 500 штук,
+	// что нас не устраивает, поэтому немного снизим эту цифру до более приемлемых значений.
+	options.L0CompactionFileThreshold = 8
+	chatListDB, err = pebble.Open(dbPath, &options)
+
+	if err != nil {
+		return fmt.Errorf("Unable to open settings db, %s: %w\n", dbPath, err)
+	}
+
+	// Заполним слайс со списком чатов. Операция нудная.
+	iterator, err := chatListDB.NewIter(&pebble.IterOptions{})
+
+	if !iterator.First() {
+		return errors.New("Unable to iterate slice with chats")
+	}
+
+	// Попробуем извлечь список ключей и заполнить слайс с чатами.
+	for {
+		// Закончили итерировать по списку.
+		if !iterator.Valid() {
+			break
+		}
+
+		// Битая база?
+		if err := iterator.Error(); err != nil {
+			chatList = []string{}
+
+			return fmt.Errorf("Unable to get chat list: %w", err)
+		}
+
+		chatName := iterator.Key()
+
+		if string(chatName) == "" {
+			return errors.New("Got empty chat name when query " + chatListDBName)
+		}
+
+		chatList = append(chatList, string(chatName))
+
+		iterator.Next()
+	}
+
+	return err
+}
+
+// AppendChatListDB добавляет чат в список известных боту. Можно добавлять чаты не глядя, дубликатов не добавится.
+// Bot API нам такую информацию не даёт.
+func AppendChatListDB(chatID string) error {
+	var err error
+
+	if slices.Contains(chatList, chatID) {
+		return err
+	}
+
+	if err = StoreKV(chatListDB, chatID, "{}"); err != nil {
+		return fmt.Errorf("Unable to append %s to %s: %w", chatID, chatListDBName, err)
+	}
+
+	// TODO: fill in defaults!
+
+	// Не забываем актуализировать список чатов.
+	chatList = append(chatList, chatID)
+	slices.Sort(chatList)
+
+	return err
 }
 
 // GetSetting достаёт настройку из БД с настройками.

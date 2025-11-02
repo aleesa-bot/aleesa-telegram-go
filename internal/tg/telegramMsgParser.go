@@ -21,6 +21,8 @@ func telegramMsgParser(msg *echotron.Update) {
 		return
 	}
 
+	AppendChatListDB(strconv.FormatInt(msg.ChatID(), 10))
+
 	// Сообщение о том, что этот чятик изменился, например, превратился в супергруппу.
 	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) {
 		// TODO: поддержать миграцию настроек чата на новый chatId.

@@ -89,9 +89,16 @@ func main() {
 	go tg.SigHandler()
 	go tg.Telega(tg.Config)
 
-	// Periodically compact/flush pebble dbs.
+	// Периодически обслуживаем базы с настройками чатов.
 	if job, err := scheduler.Every(1).Hours().NotImmediately().Run(tg.TidySettingsDB); err != nil {
 		log.Errorf("Unable to schedule periodic settings db flush: %s", err)
+	} else {
+		tg.PeriodicJobs = append(tg.PeriodicJobs, job)
+	}
+
+	// Отправлем "доброе утро" каждое утро для всех чатов, которые на это подписались.
+	if job, err := scheduler.Every().Day().At("8:10").Run(tg.SendGoodMorning); err != nil {
+		log.Errorf("Unable to schedule send good morning task: %s", err)
 	} else {
 		tg.PeriodicJobs = append(tg.PeriodicJobs, job)
 	}
