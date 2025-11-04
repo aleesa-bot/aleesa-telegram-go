@@ -44,6 +44,9 @@ var (
 	// chatList слайс со списоком чатов.
 	chatList = []string{}
 
+	// chatGroupList слайс со списком групповых чатов.
+	chatGroupList = []string{}
+
 	// tg is var for telegram api.
 	tg echotron.API
 

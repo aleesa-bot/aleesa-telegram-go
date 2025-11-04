@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"slices"
+	"strings"
 
 	"aleesa-telegram-go/internal/log"
 
@@ -47,6 +48,9 @@ func FetchV(db *pebble.DB, key string) (string, error) {
 }
 
 // InitChatListDB открывает для пользования базу со списком чатов.
+// Вторым слоем этой базы являются слайсы chatList и chatGroupList, по которым можно в дальнейшем определять, известен
+// ли даденный чат боту. По сути, слайс chatList активно пользуется в функции AppendChatListDB, а chatGroupList - в
+// SendGoodMorning.
 func InitChatListDB() error {
 	var (
 		err     error
@@ -91,7 +95,15 @@ func InitChatListDB() error {
 			return errors.New("Got empty chat name when query " + chatListDBName)
 		}
 
-		chatList = append(chatList, string(chatName))
+		chatID := string(chatName)
+
+		chatList = append(chatList, chatID)
+		slices.Sort(chatList)
+
+		if strings.HasPrefix(chatID, "-") {
+			chatGroupList = append(chatGroupList, chatID)
+			slices.Sort(chatGroupList)
+		}
 
 		iterator.Next()
 	}
@@ -100,7 +112,7 @@ func InitChatListDB() error {
 }
 
 // AppendChatListDB добавляет чат в список известных боту. Можно добавлять чаты не глядя, дубликатов не добавится.
-// Bot API нам такую информацию не даёт.
+// Bot API нам не даёт информацию о том, на что подписан бот.
 func AppendChatListDB(chatID string) error {
 	var err error
 
@@ -108,15 +120,21 @@ func AppendChatListDB(chatID string) error {
 		return err
 	}
 
-	if err = StoreKV(chatListDB, chatID, "{}"); err != nil {
+	if err = StoreKV(chatListDB, chatID, "1"); err != nil {
 		return fmt.Errorf("Unable to append %s to %s: %w", chatID, chatListDBName, err)
 	}
-
-	// TODO: fill in defaults!
 
 	// Не забываем актуализировать список чатов.
 	chatList = append(chatList, chatID)
 	slices.Sort(chatList)
+	chatList = slices.Compact(chatList)
+
+	// Если СhatID начинается с - это значит, что мы имеем дело именно с группой/супергруппой/каналом.
+	if strings.HasPrefix(chatID, "-") {
+		chatGroupList = append(chatGroupList, chatID)
+		slices.Sort(chatGroupList)
+		chatGroupList = slices.Compact(chatGroupList)
+	}
 
 	return err
 }
@@ -190,8 +208,14 @@ func SaveSetting(chatID string, setting string, value string) error {
 		}
 	}
 
-	if err := StoreKV(settingsDB[database], setting, value); err != nil {
+	if err = StoreKV(settingsDB[database], setting, value); err != nil {
 		log.Errorf("Unable to save setting %s in database %s: %s", setting, database, err)
+
+		return err
+	}
+
+	if err = settingsDB[database].Flush(); err != nil {
+		log.Errorf("Unable to flush settings db for %s: %s", chatID, err)
 	}
 
 	return err
