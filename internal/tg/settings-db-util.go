@@ -65,34 +65,29 @@ func InitChatListDB() error {
 	chatListDB, err = pebble.Open(dbPath, &options)
 
 	if err != nil {
-		return fmt.Errorf("Unable to open settings db, %s: %w\n", dbPath, err)
+		return fmt.Errorf("unable to open settings db, %s: %w", dbPath, err)
 	}
 
 	// Заполним слайс со списком чатов. Операция нудная.
 	iterator, err := chatListDB.NewIter(&pebble.IterOptions{})
 
 	if !iterator.First() {
-		return errors.New("Unable to iterate slice with chats")
+		return errors.New("unable to iterate slice with chats")
 	}
 
 	// Попробуем извлечь список ключей и заполнить слайс с чатами.
-	for {
-		// Закончили итерировать по списку.
-		if !iterator.Valid() {
-			break
-		}
-
+	for !iterator.Valid() {
 		// Битая база?
 		if err := iterator.Error(); err != nil {
 			chatList = []string{}
 
-			return fmt.Errorf("Unable to get chat list: %w", err)
+			return fmt.Errorf("unable to get chat list: %w", err)
 		}
 
 		chatName := iterator.Key()
 
-		if string(chatName) == "" {
-			return errors.New("Got empty chat name when query " + chatListDBName)
+		if len(chatName) == 0 {
+			return errors.New("got empty chat name when query " + chatListDBName)
 		}
 
 		chatID := string(chatName)
@@ -121,18 +116,21 @@ func AppendChatListDB(chatID string) error {
 	}
 
 	if err = StoreKV(chatListDB, chatID, "1"); err != nil {
-		return fmt.Errorf("Unable to append %s to %s: %w", chatID, chatListDBName, err)
+		return fmt.Errorf("unable to append chat %s to chatListDB %s: %w", chatID, chatListDBName, err)
 	}
 
 	// Не забываем актуализировать список чатов.
 	chatList = append(chatList, chatID)
 	slices.Sort(chatList)
+
 	chatList = slices.Compact(chatList)
 
 	// Если СhatID начинается с - это значит, что мы имеем дело именно с группой/супергруппой/каналом.
 	if strings.HasPrefix(chatID, "-") {
 		chatGroupList = append(chatGroupList, chatID)
+
 		slices.Sort(chatGroupList)
+
 		chatGroupList = slices.Compact(chatGroupList)
 	}
 

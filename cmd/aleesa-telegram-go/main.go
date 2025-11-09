@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"aleesa-telegram-go/internal/log"
@@ -15,47 +14,14 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// init производит некоторую инициализацию перед запуском main().
-func init() {
-	var (
-		err error
-	)
-
-	executablePath, err := os.Executable()
-
-	if err != nil {
-		log.Fatalf("Unable to get current executable path: %s", err)
-	}
-
-	configJSONPath := filepath.Dir(executablePath) + "/data/config.json"
-
-	locations := []string{
-		"~/.aleesa-telegram-go.json",
-		"~/aleesa-telegram-go.json",
-		"/etc/aleesa-telegram-go.json",
-		configJSONPath,
-	}
-
-	for _, location := range locations {
-		tg.Config, err = tg.ParseConfig(location)
-
-		if err == nil {
-			break
-		}
-
-		log.Errorf("Unable to parse config at %s: %s", location, err)
-	}
-
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
 func main() {
 	var (
 		logfile *os.File
 		err     error
 	)
+
+	// Найдём и прочитаем конфиг.
+	tg.ReadConfig()
 
 	// Откроем лог и скормим его логгеру.
 	if tg.Config.Log != "" {

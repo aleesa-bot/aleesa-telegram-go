@@ -13,7 +13,7 @@ func Help(cmd *echotron.Update) (bool, error) {
 
 	help += fmt.Sprintf("%shelp | %sпомощь             - список команд", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sanek | %sанек | %sанекдот    - рандомный анекдот с anekdot.ru", Config.Csign, Config.Csign, Config.Csign)
-	help += fmt.Sprintf("%sbuni                       - рандомный стрип hapi buni", Config.Csign)
+	help += Config.Csign + "buni                       - рандомный стрип hapi buni"
 	help += fmt.Sprintf("%sbunny | %srabbit | %sкролик  - кролик", Config.Csign, Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%scat | %sкис                 - кошечка", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%scoin | %sмонетка            - подбросить монетку - орёл или решка?", Config.Csign, Config.Csign)
@@ -28,7 +28,7 @@ func Help(cmd *echotron.Update) (bool, error) {
 	help += fmt.Sprintf("%sfrog | %sлягушка            - лягушка", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%shorse | %sлошадка           - лошадка", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%slat | %sлат                 - сгенерить фразу из крылатых латинских выражений", Config.Csign, Config.Csign)
-	help += fmt.Sprintf("%smonkeyuser                 - рандомный стрип MonkeyUser", Config.Csign)
+	help += Config.Csign + "monkeyuser                 - рандомный стрип MonkeyUser"
 	help += fmt.Sprintf("%sowl | %sсова | %sсыч         - сова", Config.Csign, Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sproverb | %sпословица       - рандомная русская пословица", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sping | %sпинг               - попинговать бота", Config.Csign, Config.Csign)
@@ -36,11 +36,11 @@ func Help(cmd *echotron.Update) (bool, error) {
 	help += fmt.Sprintf("%ssnail | %sулитка            - улитка", Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sver | %sversion | %sверсия   - что-то про версию ПО", Config.Csign, Config.Csign, Config.Csign)
 	help += fmt.Sprintf("%sw <город> | %sп <город>     - погода в указанном городе", Config.Csign, Config.Csign)
-	help += fmt.Sprintf("%sweather <город>            - погода в указанном городе", Config.Csign)
-	help += fmt.Sprintf("%sпогода <город>             - погода в указанном городе", Config.Csign)
-	help += fmt.Sprintf("%sпогодка <город>            - погода в указанном городе", Config.Csign)
-	help += fmt.Sprintf("%sпогадка <город>            - погода в указанном городе", Config.Csign)
-	help += fmt.Sprintf("%sxkcd                       - рандомный стрип с сайта xkcd.ru", Config.Csign)
+	help += Config.Csign + "weather <город>            - погода в указанном городе"
+	help += Config.Csign + "погода <город>             - погода в указанном городе"
+	help += Config.Csign + "погодка <город>            - погода в указанном городе"
+	help += Config.Csign + "погадка <город>            - погода в указанном городе"
+	help += Config.Csign + "xkcd                       - рандомный стрип с сайта xkcd.ru"
 	help += fmt.Sprintf("%skarma фраза | %sкарма фраза - посмотреть карму фразы", Config.Csign, Config.Csign)
 	help += "```\n"
 	help += "Но на самом деле я бот больше для общения, чем для исполнения команд.\n"

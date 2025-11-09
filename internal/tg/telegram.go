@@ -75,10 +75,10 @@ func ConstructFullChatName(c *echotron.Chat) string {
 func ConstructPartialUserUsername(u *echotron.User) string {
 	switch {
 	case u.Username != "":
-		return fmt.Sprintf("@%s", u.Username)
+		return "@" + u.Username
 
 	case u.FirstName != "" && u.LastName != "":
-		return fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+		return u.FirstName + " " + u.LastName
 
 	case u.FirstName != "":
 		return u.FirstName
@@ -96,10 +96,10 @@ func ConstructPartialUserUsername(u *echotron.User) string {
 func ConstructPartialChatUsername(c *echotron.Chat) string {
 	switch {
 	case c.Username != "":
-		return fmt.Sprintf("@%s", c.Username)
+		return "@" + c.Username
 
 	case c.FirstName != "" && c.LastName != "":
-		return fmt.Sprintf("%s %s", c.FirstName, c.LastName)
+		return c.FirstName + " " + c.LastName
 
 	case c.FirstName != "":
 		return c.FirstName
@@ -119,13 +119,13 @@ func ConstructUserFirstLastName(u *echotron.User) string {
 
 	switch {
 	case u.FirstName != "" && u.LastName != "":
-		user = fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+		user = u.FirstName + " " + u.LastName
 	case u.FirstName != "":
 		user = u.FirstName
 	case u.LastName != "":
 		user = u.LastName
 	case u.Username != "":
-		user = fmt.Sprintf("@%s", u.Username)
+		user = "@" + u.Username
 	default:
 		user = strconv.FormatInt(u.ID, 10)
 	}

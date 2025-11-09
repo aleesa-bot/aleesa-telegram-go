@@ -10,8 +10,8 @@ import (
 	"github.com/hjson/hjson-go"
 )
 
-// ParseConfig разбирает и валидирует даденный конфиг.
-func ParseConfig(path string) (MyConfig, error) {
+// parseConfig разбирает и валидирует даденный конфиг.
+func parseConfig(path string) (MyConfig, error) {
 	fileInfo, err := os.Stat(path)
 
 	// Предполагаем, что файла либо нет, либо мы не можем его прочитать, второе надо бы логгировать, но пока забьём.

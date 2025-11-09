@@ -66,6 +66,7 @@ func SigHandler() {
 		}
 
 		log.Debug("Closing known chat list db")
+
 		_ = chatListDB.Close()
 
 		os.Exit(0)

@@ -21,47 +21,43 @@ func Admin(msg *echotron.Update) (bool, error) {
 	case c == "admin" || c == "админ":
 		answer = "```\n"
 
-		answer += fmt.Sprintf("%sadmin censor          - показать список состояния типов сообщений\n", Config.Csign)
-		answer += fmt.Sprintf("%sадмин ценз            - показать список состояния типов сообщений\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin censor type #   - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n", Config.Csign)
-		answer += fmt.Sprintf("%sадмин ценз тип #      - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin fortune         - показываем ли с утра фортунку для чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin фортунка        - показываем ли с утра фортунку для чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin fortune #       - где 1 - вкл, 0 - выкл фортунку с утра\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin фортунка #      - где 1 - вкл, 0 - выкл фортунку с утра\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin greet           - приветствуем ли новых участников чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin приветствие     - приветствуем ли новых участников чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin greet #         - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin приветствие #   - где 1 - вкл, 0 - выкл приветствия новых участников чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin goodbye         - прощаемся ли с ушедшими участниками чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin прощание        - прощаемся ли с ушедшими участниками чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin goodbye #       - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin прощание #      - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin oboobs #        - где 1 - вкл, 0 - выкл плагина oboobs\n", Config.Csign)
+		answer += Config.Csign + "admin censor          - показать список состояния типов сообщений\n"
+		answer += Config.Csign + "админ ценз            - показать список состояния типов сообщений\n"
+		answer += Config.Csign + "admin censor type #   - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n"
+		answer += Config.Csign + "админ ценз тип #      - где 1 - вкл, 0 - выкл цензуры для означенного типа сообщений\n"
+		answer += Config.Csign + "admin fortune         - показываем ли с утра фортунку для чата\n"
+		answer += Config.Csign + "admin фортунка        - показываем ли с утра фортунку для чата\n"
+		answer += Config.Csign + "admin fortune #       - где 1 - вкл, 0 - выкл фортунку с утра\n"
+		answer += Config.Csign + "admin фортунка #      - где 1 - вкл, 0 - выкл фортунку с утра\n"
+		answer += Config.Csign + "admin greet           - приветствуем ли новых участников чата\n"
+		answer += Config.Csign + "admin приветствие     - приветствуем ли новых участников чата\n"
+		answer += Config.Csign + "admin greet #         - где 1 - вкл, 0 - выкл приветствия новых участников чата\n"
+		answer += Config.Csign + "admin приветствие #   - где 1 - вкл, 0 - выкл приветствия новых участников чата\n"
+		answer += Config.Csign + "admin goodbye         - прощаемся ли с ушедшими участниками чата\n"
+		answer += Config.Csign + "admin прощание        - прощаемся ли с ушедшими участниками чата\n"
+		answer += Config.Csign + "admin goodbye #       - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n"
+		answer += Config.Csign + "admin прощание #      - где 1 - вкл, 0 - выкл прощания с ушедшими участниками чата\n"
+		answer += Config.Csign + "admin oboobs #        - где 1 - вкл, 0 - выкл плагина oboobs\n"
+
 		answer += fmt.Sprintf(
 			"%sadmin oboobs          - показываем ли сисечки по просьбе участников чата (команды %stits, %stities, %sboobs, %sboobies, %sсиси, %sсисечки)\n",
 			Config.Csign, Config.Csign, Config.Csign, Config.Csign, Config.Csign, Config.Csign, Config.Csign,
 		)
-		answer += fmt.Sprintf("%sadmin obutts #        - где 1 - вкл, 0 - выкл плагина obutts\n", Config.Csign)
+
+		answer += Config.Csign + "admin obutts #        - где 1 - вкл, 0 - выкл плагина obutts\n"
+
 		answer += fmt.Sprintf(
 			"%sadmin obutts          - показываем ли попки по просьбе участников чата (команды %sass, %sbutt, %sbooty, %sпопа, %sпопка)\n",
 			Config.Csign, Config.Csign, Config.Csign, Config.Csign, Config.Csign, Config.Csign,
 		)
-		answer += fmt.Sprintf("%sadmin chan_msg        - оставляем ли сообщения присланные от имени (других) каналов\n", Config.Csign)
-		answer += fmt.Sprintf("%sadmin chan_msg #      - где 1 - оставляем, 0 - удаляем\n", Config.Csign)
-		answer += fmt.Sprintf(
-			"%sadmin ban userid sec  - выдаём ban указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n",
-			Config.Csign,
-		)
-		answer += fmt.Sprintf(
-			"%sadmin mute userid sec - выдаём mute указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n",
-			Config.Csign,
-		)
-		answer += fmt.Sprintf(
-			"%sadmin admin mute      - разрешено ли обычным админам мьютить участников чата через бота (если бот - админ), (создатель чата всегда может попросить бота-админа замьютить обычного участника чата)\n",
-			Config.Csign,
-		)
-		answer += fmt.Sprintf("%sadmin admin mute #    - где 1 - разрешено, 0 - не разрешено\n", Config.Csign)
+
+		answer += Config.Csign + "admin chan_msg        - оставляем ли сообщения присланные от имени (других) каналов\n"
+		answer += Config.Csign + "admin chan_msg #      - где 1 - оставляем, 0 - удаляем\n"
+		answer += Config.Csign + "admin ban userid sec  - выдаём ban указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n"
+		answer += Config.Csign + "admin mute userid sec - выдаём mute указанному user-у на указанное количество секунд (от 30 сек до 1 года), доступно только создателю чата\n"
+		answer += Config.Csign + "admin admin mute      - разрешено ли обычным админам мьютить участников чата через бота (если бот - админ), (создатель чата всегда может попросить бота-админа замьютить обычного участника чата)\n"
+
+		answer += Config.Csign + "%sadmin admin mute #    - где 1 - разрешено, 0 - не разрешено\n"
 		answer += "\n"
 		answer += "Типы сообщений:\naudio voice photo video video_note animation sticker dice game poll document\n"
 		answer += "```"

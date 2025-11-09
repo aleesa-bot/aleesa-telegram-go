@@ -31,9 +31,16 @@ var (
 	// SendGoodMorning отсылает сообщение "с добрым утром" (сейчас - фортунку). Предполагается, что оно прогоняется по
 	// всем желающим чатам раз в сутки, с утра. Утро отсчитывается от настроек локали в системе.
 	SendGoodMorning = func() {
+		me, err := tg.GetMe()
+
+		if err != nil {
+			log.Errorf("Unable to send good mornings message, cannot get info about myself: %s", err)
+
+			return
+		}
+
 		for _, chatID := range chatGroupList {
 			if GetSetting(chatID, "FortuneMsg") == "1" {
-				me, err := tg.GetMe()
 				// Засылаем фразу в misc-канал (в роутер).
 				var rmsg rMsg
 

@@ -21,7 +21,9 @@ func telegramMsgParser(msg *echotron.Update) {
 		return
 	}
 
-	AppendChatListDB(strconv.FormatInt(msg.ChatID(), 10))
+	if err := AppendChatListDB(strconv.FormatInt(msg.ChatID(), 10)); err != nil {
+		log.Error(err.Error())
+	}
 
 	// Сообщение о том, что этот чятик изменился, например, превратился в супергруппу.
 	if (msg.Message.MigrateFromChatID < 0) && (msg.Message.MigrateToChatID < 0) {
@@ -77,7 +79,7 @@ func telegramMsgParser(msg *echotron.Update) {
 
 				users = strings.Join(usersSlice, ", ")
 
-				users += fmt.Sprintf(" and %s", ConstructTelegramHighlightName(lastOne))
+				users += " and " + ConstructTelegramHighlightName(lastOne)
 			} else {
 				users = ConstructTelegramHighlightName(msg.Message.NewChatMembers[0])
 			}
@@ -130,7 +132,7 @@ func telegramMsgParser(msg *echotron.Update) {
 		if GetSetting(strconv.FormatInt(msg.Message.Chat.ID, 10), "GoodbyeMsg") == "1" {
 			user := ConstructUserFirstLastName(msg.Message.From)
 
-			goodbye := fmt.Sprintf("Прощаемся с %s", user)
+			goodbye := "Прощаемся с " + user
 
 			opts := echotron.MessageOptions{DisableNotification: true, ParseMode: "MarkdownV2"}
 

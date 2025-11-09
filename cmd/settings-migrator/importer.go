@@ -1,4 +1,5 @@
-package settingsmigrator
+// main Импортирует настройки из файла settings.json в базу с настройками.
+package main
 
 import (
 	"fmt"
